@@ -22,9 +22,9 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 #### Software Features
 
-- [] Use Leaflet to render an interactive map
-- [] Make the player's location fixed to the CMPM 121 classroom
-- [] Render grid cells of some fixed circle size on the map
+- [X] Use Leaflet to render an interactive map
+- [X] Make the player's location fixed to the CMPM 121 classroom
+- [X] Render grid cells of some fixed circle size on the map
 - [] The coin value of a cell is displayed on a circular canvas without needing to be clicked
 - [] Cells can be clicked and interacted with using a button that says 'Trade'
-- [] Token spawning consistency is implemented using a deterministic hashing mechanism
+- [X] Token spawning consistency is implemented using a deterministic hashing mechanism
