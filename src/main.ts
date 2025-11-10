@@ -88,6 +88,16 @@ function spawnCache(i: number, j: number) {
     fillOpacity: 0.4,
   }).addTo(map);
 
+  // Deterministic point value for each cell
+  const pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
+
+  // Attach a *permanent tooltip* that always shows the value
+  circle.bindTooltip(`${pointValue}`, {
+    permanent: true,
+    direction: "center",
+    className: "cell-label", // optional for styling
+  }).openTooltip();
+
   // Handle interactions with the cache
   circle.bindPopup(() => {
     // Each cache has a random point value, mutable by the player
