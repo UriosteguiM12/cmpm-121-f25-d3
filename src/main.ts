@@ -49,11 +49,15 @@ const map = leaflet.map(mapDiv, {
 
 // Populate the map with a background tile layer
 leaflet
-  .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution:
-      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  })
+  .tileLayer(
+    `https://tile.thunderforest.com/pioneer/{z}/{x}/{y}.png?apikey=3571fe386fc0421aad3eb2983e8ff8b3`,
+    {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, ' +
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  )
   .addTo(map);
 
 // Add a marker to represent the player
