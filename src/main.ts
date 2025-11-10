@@ -66,8 +66,8 @@ playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
 // Display the player's points
-let playerPoints = 0;
-statusPanelDiv.innerHTML = "No points yet...";
+let playerCoins = 0;
+statusPanelDiv.innerHTML = "No coins yet...";
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
@@ -97,17 +97,17 @@ function spawnCache(i: number, j: number) {
     const popupDiv = document.createElement("div");
     popupDiv.innerHTML = `
                 <div>There is a cache here at "${i},${j}". It has value <span id="value">${pointValue}</span>.</div>
-                <button id="poke">poke</button>`;
+                <button id="trade">Trade</button>`;
 
     // Clicking the button decrements the cache's value and increments the player's points
     popupDiv
-      .querySelector<HTMLButtonElement>("#poke")!
+      .querySelector<HTMLButtonElement>("#trade")!
       .addEventListener("click", () => {
         pointValue--;
         popupDiv.querySelector<HTMLSpanElement>("#value")!.innerHTML =
           pointValue.toString();
-        playerPoints++;
-        statusPanelDiv.innerHTML = `${playerPoints} points accumulated`;
+        playerCoins++;
+        statusPanelDiv.innerHTML = `${playerCoins} coins accumulated`;
       });
 
     return popupDiv;
