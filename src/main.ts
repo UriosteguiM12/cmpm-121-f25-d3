@@ -89,7 +89,7 @@ function spawnCache(i: number, j: number) {
   }).addTo(map);
 
   // Deterministic point value for each cell
-  const pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);   // this is what makes the values consistent across page loads, based on luck value
+  const pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100); // this is what makes the values consistent across page loads, based on luck value
 
   // Attach a *permanent tooltip* that always shows the value
   circle.bindTooltip(`${pointValue}`, {
