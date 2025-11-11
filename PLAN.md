@@ -33,7 +33,18 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 #### Map
 
-- [] Cover the visible map with coins upon initial load of the game
+- [X] Cover the visible map with coins upon initial load of the game
 - [] Make coins farther than 3 cells away grayed out, value is not visible
 - [] If the coin is within the 3 cell range, make it blue with it's value visible
-- [] The initial state of coins is consistent across page loads
+- [X] The initial state of coins is consistent across page loads
+
+#### Inventory
+
+- [] The player is able to pick up at most one coin
+- [] Picking up a coin removes the value from the cell
+- [] Display if the player holds a coin or not
+
+#### Crafting
+
+- [] If the player has a coin, they can only interact will a cell of the same value
+- [] If this condition is met, the player will be handed a coin with double the value
