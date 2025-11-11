@@ -36,7 +36,7 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 22;
 const CACHE_SPAWN_PROBABILITY = 0.1;
-const _PLAYER_RANGE_METERS = 20;
+const PLAYER_RANGE_METERS = 30;
 
 // Create the map (element with id "map" is defined in index.html)
 const map = leaflet.map(mapDiv, {
@@ -145,11 +145,38 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
   }
 }
 
-// Determine which cells are within range of the player
-// Create a flag
-/* if withinRange(){
-      make cells blue and show their value
-   else{
-      grey out the cell and hide the value
+withinRange(); // toggle visibility of cells depending on distance to player
+
+function withinRange() {
+  const playerPos = playerMarker.getLatLng();
+
+  for (const { circle, center, pointValue } of allCaches) {
+    const distance = playerPos.distanceTo(center);
+
+    if (distance <= PLAYER_RANGE_METERS) {
+      // Within range, highlight it and show its value
+      circle.setStyle({
+        color: "blue",
+        fillColor: "#30f",
+        fillOpacity: 0.5,
+      });
+
+      // Show tooltip
+      circle.bindTooltip(`${pointValue}`, {
+        permanent: true,
+        direction: "center",
+        className: "cell-label",
+      }).openTooltip();
+    } else {
+      // Out of range, grey it out and hide its tooltip
+      circle.setStyle({
+        color: "gray",
+        fillColor: "#ccc",
+        fillOpacity: 0.2,
+      });
+      circle.off("click");
+      circle.unbindTooltip();
+      circle.closePopup();
     }
-*/
+  }
+}
