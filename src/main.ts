@@ -36,6 +36,7 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 22;
 const CACHE_SPAWN_PROBABILITY = 0.1;
+const _PLAYER_RANGE_METERS = 20;
 
 // Create the map (element with id "map" is defined in index.html)
 const map = leaflet.map(mapDiv, {
@@ -69,6 +70,13 @@ playerMarker.addTo(map);
 let playerCoins = 0;
 statusPanelDiv.innerHTML = "No coins yet...";
 
+// used to store cells globally to toggle visbility later
+const allCaches: {
+  circle: leaflet.Circle;
+  center: leaflet.LatLng;
+  pointValue: number;
+}[] = [];
+
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
   // Convert cell numbers into lat/lng bounds
@@ -91,11 +99,14 @@ function spawnCache(i: number, j: number) {
   // Deterministic point value for each cell
   const pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100); // this is what makes the values consistent across page loads, based on luck value
 
+  // Add to the array
+  allCaches.push({ circle, center, pointValue });
+
   // Attach a *permanent tooltip* that always shows the value
   circle.bindTooltip(`${pointValue}`, {
     permanent: true,
     direction: "center",
-    className: "cell-label", // optional for styling
+    className: "cell-label",
   }).openTooltip();
 
   // Handle interactions with the cache
@@ -133,3 +144,12 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
     }
   }
 }
+
+// Determine which cells are within range of the player
+// Create a flag
+/* if withinRange(){
+      make cells blue and show their value
+   else{
+      grey out the cell and hide the value
+    }
+*/
