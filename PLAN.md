@@ -40,12 +40,12 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 #### Inventory
 
-- [X] The player starts off with a coin of value 1
-- [X] The player is able to pick up at most one coin
-- [X] Picking up a coin removes the value from the cell, if it matches the currently held coin value
-- [X] Display if the player holds a coin or not
+- [x] The player starts off with a coin of value 1
+- [x] The player is able to pick up at most one coin
+- [x] Picking up a coin removes the value from the cell, if it matches the currently held coin value
+- [x] Display if the player holds a coin or not
 
 #### Crafting
 
-- [X] If the player has a coin, they can only interact will a cell of the same value
-- [X] If this condition is met, the player will be handed a coin with double the value
+- [x] If the player has a coin, they can only interact will a cell of the same value
+- [x] If this condition is met, the player will be handed a coin with double the value
