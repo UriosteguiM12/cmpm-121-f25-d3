@@ -67,8 +67,8 @@ playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
 // Display the player's points
-let playerCoins = 0;
-statusPanelDiv.innerHTML = "No coins yet...";
+let playerHeldCoin: number | null = 80; // starts with a coin of value 1
+statusPanelDiv.innerHTML = `You have: Coin of value ${playerHeldCoin}`;
 
 // used to store cells globally to toggle visbility later
 const allCaches: {
@@ -112,24 +112,39 @@ function spawnCache(i: number, j: number) {
   // Handle interactions with the cache
   circle.bindPopup(() => {
     // Each cache has a random point value, mutable by the player
-    let pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
+    let currentValue = Math.floor(
+      luck([i, j, "initialValue"].toString()) * 100,
+    );
 
     // The popup offers a description and button
     const popupDiv = document.createElement("div");
     popupDiv.innerHTML = `
-                <div>There is a cache here at "${i},${j}". It has value <span id="value">${pointValue}</span>.</div>
-                <button id="trade">Trade</button>`;
+      <div>There is a cache here at "${i},${j}". It has value <span id="value">${currentValue}</span>.</div>
+      <button id="pickup">Pick up</button>
+      <div id="message"></div>`;
 
-    // Clicking the button decrements the cache's value and increments the player's points
-    popupDiv
-      .querySelector<HTMLButtonElement>("#trade")!
-      .addEventListener("click", () => {
-        pointValue--;
-        popupDiv.querySelector<HTMLSpanElement>("#value")!.innerHTML =
-          pointValue.toString();
-        playerCoins++;
-        statusPanelDiv.innerHTML = `${playerCoins} coins accumulated`;
-      });
+    const pickupBtn = popupDiv.querySelector<HTMLButtonElement>("#pickup")!;
+    const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
+    const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
+
+    pickupBtn.addEventListener("click", () => {
+      if (playerHeldCoin === null) {
+        playerHeldCoin = currentValue;
+        statusPanelDiv.innerHTML = `You have: Coin of value ${playerHeldCoin}`;
+        currentValue = 0;
+        valueSpan.innerHTML = "0";
+        circle.setStyle({ fillColor: "#aaa", color: "gray" });
+        messageDiv.innerHTML = "You picked up the coin!";
+      } else if (playerHeldCoin === currentValue && currentValue > 0) {
+        currentValue = 0;
+        valueSpan.innerHTML = "0";
+        circle.setStyle({ fillColor: "#aaa", color: "gray" });
+        messageDiv.innerHTML = "You matched your coin value and picked it up!";
+      } else {
+        messageDiv.innerHTML =
+          "You can’t pick this up (value doesn’t match your coin).";
+      }
+    });
 
     return popupDiv;
   });
