@@ -67,14 +67,14 @@ playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
 // Display the player's points
-let playerHeldCoin: number | null = 80; // starts with a coin of value 1
+let playerHeldCoin: number | null = 1; // starts with a coin of value 1
 statusPanelDiv.innerHTML = `You have: Coin of value ${playerHeldCoin}`;
 
 // used to store cells globally to toggle visbility later
 const allCaches: {
   circle: leaflet.Circle;
   center: leaflet.LatLng;
-  pointValue: number;
+  value: number;
 }[] = [];
 
 // Add caches to the map by cell numbers
@@ -96,11 +96,17 @@ function spawnCache(i: number, j: number) {
     fillOpacity: 0.4,
   }).addTo(map);
 
-  // Deterministic point value for each cell
-  const pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100); // this is what makes the values consistent across page loads, based on luck value
+  // Only the following 7 values should be scattered across the map
+  const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
+  const randomIndex = Math.floor(
+    luck([i, j, "initialValue"].toString()) * COIN_VALUES.length,
+  );
+
+  const pointValue = COIN_VALUES[randomIndex];
 
   // Add to the array
-  allCaches.push({ circle, center, pointValue });
+  const cache = { circle, center, value: pointValue };
+  allCaches.push(cache);
 
   // Attach a *permanent tooltip* that always shows the value
   circle.bindTooltip(`${pointValue}`, {
@@ -111,15 +117,10 @@ function spawnCache(i: number, j: number) {
 
   // Handle interactions with the cache
   circle.bindPopup(() => {
-    // Each cache has a random point value, mutable by the player
-    let currentValue = Math.floor(
-      luck([i, j, "initialValue"].toString()) * 100,
-    );
-
     // The popup offers a description and button
     const popupDiv = document.createElement("div");
     popupDiv.innerHTML = `
-      <div>There is a cache here at "${i},${j}". It has value <span id="value">${currentValue}</span>.</div>
+      <div>There is a cache here at "${i},${j}". It has value <span id="value">${cache.value}</span>.</div>
       <button id="pickup">Pick up</button>
       <div id="message"></div>`;
 
@@ -129,17 +130,24 @@ function spawnCache(i: number, j: number) {
 
     pickupBtn.addEventListener("click", () => {
       if (playerHeldCoin === null) {
-        playerHeldCoin = currentValue;
+        playerHeldCoin = cache.value;
         statusPanelDiv.innerHTML = `You have: Coin of value ${playerHeldCoin}`;
-        currentValue = 0;
+        cache.value = 0;
         valueSpan.innerHTML = "0";
         circle.setStyle({ fillColor: "#aaa", color: "gray" });
+        circle.setTooltipContent(`${cache.value}`);
         messageDiv.innerHTML = "You picked up the coin!";
-      } else if (playerHeldCoin === currentValue && currentValue > 0) {
-        currentValue = 0;
+      } else if (playerHeldCoin === cache.value && cache.value > 0) {
+        playerHeldCoin *= 2; // upgrade player coin
+        statusPanelDiv.innerHTML = `You have: Coin of value ${playerHeldCoin}`;
+        cache.value = 0;
         valueSpan.innerHTML = "0";
+        circle.setTooltipContent(`${cache.value}`);
         circle.setStyle({ fillColor: "#aaa", color: "gray" });
-        messageDiv.innerHTML = "You matched your coin value and picked it up!";
+        messageDiv.innerHTML = "You matched your coin value and upgraded!";
+        if (playerHeldCoin === 256) {
+          messageDiv.innerHTML = "You win! Coin of value 256 reached!";
+        }
       } else {
         messageDiv.innerHTML =
           "You can’t pick this up (value doesn’t match your coin).";
@@ -165,7 +173,7 @@ withinRange(); // toggle visibility of cells depending on distance to player
 function withinRange() {
   const playerPos = playerMarker.getLatLng();
 
-  for (const { circle, center, pointValue } of allCaches) {
+  for (const { circle, center, value } of allCaches) {
     const distance = playerPos.distanceTo(center);
 
     if (distance <= PLAYER_RANGE_METERS) {
@@ -177,7 +185,7 @@ function withinRange() {
       });
 
       // Show tooltip
-      circle.bindTooltip(`${pointValue}`, {
+      circle.bindTooltip(`${value}`, {
         permanent: true,
         direction: "center",
         className: "cell-label",
