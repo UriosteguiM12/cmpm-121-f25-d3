@@ -232,16 +232,43 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
 function updateVisibleCaches() {
   const playerPos = playerMarker.getLatLng();
 
-  for (const { circle, center, value } of allCaches) {
+  for (const cache of allCaches) {
+    const { circle, center, value } = cache;
     const inRange = playerPos.distanceTo(center) <= PLAYER_RANGE_METERS;
 
     if (inRange) {
-      circle.setStyle({ color: "blue", fillColor: "#30f", fillOpacity: 0.5 });
-      circle.setTooltipContent(`${value}`);
+      // Restore appearance
+      circle.setStyle({
+        color: "blue",
+        fillColor: "#30f",
+        fillOpacity: 0.5,
+        interactive: true,
+      });
+
+      // Restore tooltip
+      circle.bindTooltip(`${value}`, {
+        permanent: true,
+        direction: "center",
+        className: "cell-label",
+      });
+
+      // Re-bind popup if needed
+      if (!circle.getPopup()) {
+        bindCachePopup(circle, cache, 0, 0);
+      }
     } else {
-      circle.setStyle({ color: "gray", fillColor: "#ccc", fillOpacity: 0.2 });
-      circle.closePopup();
+      // Disable visual + interaction
+      circle.setStyle({
+        color: "gray",
+        fillColor: "#ccc",
+        fillOpacity: 0.2,
+        interactive: false,
+      });
+
+      // Remove clickability + popup
+      circle.unbindPopup();
       circle.unbindTooltip();
+      circle.closePopup();
     }
   }
 }
