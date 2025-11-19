@@ -114,8 +114,7 @@ function movePlayerByStep(dI: number, dJ: number) {
   const newLatLng = cellToLatLng(playerCell);
   playerMarker.setLatLng(newLatLng);
 
-  updateVisibleCaches();
-  spawnCachesAroundPlayer();
+  map.panTo(newLatLng);
 }
 
 document.getElementById("btn-up")!.addEventListener(
@@ -367,5 +366,16 @@ function updateVisibleCaches() {
   }
 }
 
+map.on("moveend", () => {
+  const centerLatLng = map.getCenter(); // Current map center
+  const centerCell = latLngToCell(centerLatLng);
+  playerCell.i = centerCell.i;
+  playerCell.j = centerCell.j;
+
+  updateVisibleCaches();
+  spawnCachesAroundPlayer();
+});
+
 // Initialize visibility state when the game starts
 updateVisibleCaches();
+spawnCachesAroundPlayer();
