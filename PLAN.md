@@ -1,4 +1,4 @@
-# D3: Game Title TBD (Coin Collector/Merge?)
+# D3: Game Title TBD (Coin Merge)
 
 ## Game Design Vision
 
@@ -12,13 +12,13 @@ In this game, the goal is for the user to trade coins until they reach a value o
 
 ## Assignments
 
-### D3.a: Core mecahnics (coin collection and trading)
+## D3.a: Core mecahnics (coin collection and trading)
 
 Key technical challenge: Can you assemble a map-based user interface useing the Leaflet mapping framework?
 
 Key gameplay challenge: Can players collect and trade coins from nearby locations to finally trade for a coin with value 256?
 
-### Steps
+### 3A Steps
 
 ### Software Features
 
@@ -49,3 +49,15 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 - [x] If the player has a coin, they can only interact will a cell of the same value
 - [x] If this condition is met, the player will be handed a coin with double the value
+
+## D3.b: Globe-spanning Gameplay
+
+### 3B Steps
+
+### Software requirements
+
+- [] Create four buttons on screen that let the player move one grid step up/down/left/right
+- [] Cells update as the player moves (i.e. they spawn/despawn as necessary to keep the screen full)
+- [] Represent the world as a global grid anchored at Null Island (0° lat, 0° lng), using fixed-size latitude/longitude increments for each cell
+- [] Convert any map location into a grid cell ID (i, j) by dividing its coordinates by the cell size and flooring the result
+- [] Use the stable (i, j) IDs for rendering cells, spawning tokens deterministically, and handling gameplay interactions

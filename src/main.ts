@@ -265,9 +265,15 @@ function updateVisibleCaches() {
         interactive: false,
       });
 
-      // Remove clickability + popup
+      // Keep tooltip showing value
+      circle.bindTooltip(`${value}`, {
+        permanent: true,
+        direction: "center",
+        className: "cell-label",
+      });
+
+      // Remove clickability
       circle.unbindPopup();
-      circle.unbindTooltip();
       circle.closePopup();
     }
   }
