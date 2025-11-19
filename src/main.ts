@@ -150,6 +150,14 @@ const allCaches: Cache[] = [];
  * Purpose: Creates a coin cache at grid coordinates (i, j).
  * Each cache is represented as a small circle with a numeric value tooltip.
  */
+// Helper to deterministically pick a coin value using luck
+function pickCacheValue(i: number, j: number): number {
+  const raw = luck([i, j, "initialValue"].toString());
+  const index = Math.floor(raw * 1_000_000) % COIN_VALUES.length; // Spread small numbers across indexes
+  return COIN_VALUES[index];
+}
+
+// Modified createCache function
 function createCache(i: number, j: number): void {
   const center = cellToLatLng({ i, j });
 
@@ -160,9 +168,9 @@ function createCache(i: number, j: number): void {
     fillOpacity: 0.4,
   }).addTo(map);
 
-  const value = COIN_VALUES[
-    Math.floor(luck([i, j, "initialValue"].toString()) * COIN_VALUES.length)
-  ];
+  // Use the helper to pick a value
+  const value = pickCacheValue(i, j);
+
   const cache: Cache = { circle, center, value };
   allCaches.push(cache);
 
@@ -296,6 +304,7 @@ function spawnCachesAroundPlayer() {
       );
       if (exists) continue;
 
+      // Deterministically decide whether to spawn a cache
       if (luck([i, j, "initialValue"].toString()) < CACHE_SPAWN_PROBABILITY) {
         createCache(i, j);
       }
