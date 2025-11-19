@@ -115,6 +115,7 @@ function movePlayerByStep(dI: number, dJ: number) {
   playerMarker.setLatLng(newLatLng);
 
   updateVisibleCaches();
+  spawnCachesAroundPlayer();
 }
 
 document.getElementById("btn-up")!.addEventListener(
@@ -276,10 +277,26 @@ function updateUIAfterPickup(
 
 // CACHE SPAWNING
 // Populates the map with caches based on spawn probability.
-for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
-  for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-    if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
-      createCache(i, j);
+spawnCachesAroundPlayer();
+
+function spawnCachesAroundPlayer() {
+  const playerI = playerCell.i;
+  const playerJ = playerCell.j;
+
+  for (let di = -NEIGHBORHOOD_SIZE; di <= NEIGHBORHOOD_SIZE; di++) {
+    for (let dj = -NEIGHBORHOOD_SIZE; dj <= NEIGHBORHOOD_SIZE; dj++) {
+      const i = playerI + di;
+      const j = playerJ + dj;
+
+      // Skip if a cache already exists at this cell
+      const exists = allCaches.some(
+        (cache) => latLngToCell(cache.center).i === i && latLngToCell(cache.center).j === j
+      );
+      if (exists) continue;
+
+      if (luck([i, j, "initialValue"].toString()) < CACHE_SPAWN_PROBABILITY) {
+        createCache(i, j);
+      }
     }
   }
 }
