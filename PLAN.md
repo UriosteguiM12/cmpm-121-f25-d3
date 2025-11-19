@@ -56,21 +56,21 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 ### Software requirements
 
-- [] Create four buttons on screen that let the player move one grid step up/down/left/right
-- [] Cells update as the player moves (i.e. they spawn/despawn as necessary to keep the screen full)
-- [] Represent the world as a global grid anchored at Null Island (0° lat, 0° lng), using fixed-size latitude/longitude increments for each cell
-- [] Convert any map location into a grid cell ID (i, j) by dividing its coordinates by the cell size and flooring the result
-- [] Use the stable (i, j) IDs for rendering cells, spawning tokens deterministically, and handling gameplay interactions
+- [x] Create four buttons on screen that let the player move one grid step up/down/left/right
+- [x] Cells update as the player moves (i.e. they spawn/despawn as necessary to keep the screen full)
+- [x] Represent the world as a global grid anchored at Null Island (0° lat, 0° lng), using fixed-size latitude/longitude increments for each cell
+- [x] Convert any map location into a grid cell ID (i, j) by dividing its coordinates by the cell size and flooring the result
+- [x] Use the stable (i, j) IDs for rendering cells, spawning tokens deterministically, and handling gameplay interactions
 
 ### Gameplay requirements
 
 #### 3B Map
 
-- [] The player is able to move the character about the map or simply scroll the map without moving the character
-- [] Cells are visible at all times throughout the map regardless of if the arrow buttons where used or the map was dragged
-- [] As the character moves, only the cells near to their current lovation are available for interaction
+- [x] The player is able to move the character about the map or simply scroll the map without moving the character
+- [x] Cells are visible at all times throughout the map regardless of if the arrow buttons where used or the map was dragged
+- [x] As the character moves, only the cells near to their current lovation are available for interaction
 - [] Cells should appear memoryless in the sense that they forget their state when they are no longer visible on the screen
 
 #### 3B Crafting
 
-- [] The player should now be required to achieve a coin value of 256 for victory to be declared
+- [x] The player should now be required to achieve a coin value of 256 for victory to be declared
