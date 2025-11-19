@@ -39,6 +39,52 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 const PLAYER_RANGE_METERS = 30;
 const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
 
+// grid cell identifier
+type GridCell = { i: number; j: number };
+
+// cache on screen (will not keep any memory of their current state)
+type ActiveCache = {
+  circle: leaflet.Circle;
+  center: leaflet.LatLng;
+  value: number;
+  cell: GridCell;
+};
+
+const _activeCells = new Map<string, ActiveCache>();
+
+function _cellKey(_cell: GridCell) {
+  return "${cell.i},${cell.j}";
+}
+
+/*
+ * Purpose: Coverts lat/lng into integer cell indices anchored at Null Island (0,0)
+ */
+function _latLngToCell(lat: number, lng: number): GridCell {
+  const i = Math.floor(lat / TILE_DEGREES);
+  const j = Math.floor(lng / TILE_DEGREES);
+  return { i, j };
+}
+
+/*
+ * Purpose: Converts a cell id to the center lat/lng
+ */
+function _cellToCenter(cell: GridCell): leaflet.LatLng {
+  return leaflet.latLng(
+    (cell.i + 0.5) * TILE_DEGREES,
+    (cell.j + 0.5) * TILE_DEGREES,
+  );
+}
+
+/*
+ * Purpose: Deterministic value from (i,j) using luck()
+ */
+function _cellValueFor(_cell: GridCell): number {
+  const index = Math.floor(
+    luck("${cell.i},${cell.j},initialValue") * COIN_VALUES.length,
+  );
+  return COIN_VALUES[index];
+}
+
 // MAP SETUP
 const map = leaflet.map(mapDiv, {
   center: CLASSROOM_LATLNG,
