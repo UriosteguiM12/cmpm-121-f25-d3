@@ -27,6 +27,21 @@ function createPanel(id: string, parent: HTMLElement = document.body) {
 const mapDiv = createPanel("map");
 const statusPanelDiv = createPanel("statusPanel");
 
+// MOVEMENT BUTTONS
+
+const controlsDiv = document.createElement("div");
+controlsDiv.id = "movementControls";
+document.body.appendChild(controlsDiv);
+
+controlsDiv.innerHTML = `
+  <button class="arrow-btn" id="btn-up">▲</button>
+  <div class="middle-row">
+    <button class="arrow-btn" id="btn-left">◀</button>
+    <button class="arrow-btn" id="btn-right">▶</button>
+  </div>
+  <button class="arrow-btn" id="btn-down">▼</button>
+`;
+
 // CONSTANTS
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
@@ -38,52 +53,6 @@ const NEIGHBORHOOD_SIZE = 22;
 const CACHE_SPAWN_PROBABILITY = 0.1;
 const PLAYER_RANGE_METERS = 30;
 const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
-
-// grid cell identifier
-type GridCell = { i: number; j: number };
-
-// cache on screen (will not keep any memory of their current state)
-type ActiveCache = {
-  circle: leaflet.Circle;
-  center: leaflet.LatLng;
-  value: number;
-  cell: GridCell;
-};
-
-const _activeCells = new Map<string, ActiveCache>();
-
-function _cellKey(_cell: GridCell) {
-  return "${cell.i},${cell.j}";
-}
-
-/*
- * Purpose: Coverts lat/lng into integer cell indices anchored at Null Island (0,0)
- */
-function _latLngToCell(lat: number, lng: number): GridCell {
-  const i = Math.floor(lat / TILE_DEGREES);
-  const j = Math.floor(lng / TILE_DEGREES);
-  return { i, j };
-}
-
-/*
- * Purpose: Converts a cell id to the center lat/lng
- */
-function _cellToCenter(cell: GridCell): leaflet.LatLng {
-  return leaflet.latLng(
-    (cell.i + 0.5) * TILE_DEGREES,
-    (cell.j + 0.5) * TILE_DEGREES,
-  );
-}
-
-/*
- * Purpose: Deterministic value from (i,j) using luck()
- */
-function _cellValueFor(_cell: GridCell): number {
-  const index = Math.floor(
-    luck("${cell.i},${cell.j},initialValue") * COIN_VALUES.length,
-  );
-  return COIN_VALUES[index];
-}
 
 // MAP SETUP
 const map = leaflet.map(mapDiv, {
