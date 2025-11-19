@@ -85,6 +85,55 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG)
 
 statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
 
+type GridCell = {
+  i: number;
+  j: number;
+};
+
+// Convert global grid cell to lat/lng (center of the cell)
+function cellToLatLng(cell: GridCell): leaflet.LatLng {
+  return leaflet.latLng(
+    cell.i * TILE_DEGREES + TILE_DEGREES / 2,
+    cell.j * TILE_DEGREES + TILE_DEGREES / 2,
+  );
+}
+
+// Convert lat/lng to global grid cell
+function latLngToCell(latlng: leaflet.LatLng): GridCell {
+  const i = Math.floor(latlng.lat / TILE_DEGREES);
+  const j = Math.floor(latlng.lng / TILE_DEGREES);
+  return { i, j };
+}
+
+const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
+
+function movePlayerByStep(dI: number, dJ: number) {
+  playerCell.i += dI;
+  playerCell.j += dJ;
+
+  const newLatLng = cellToLatLng(playerCell);
+  playerMarker.setLatLng(newLatLng);
+
+  updateVisibleCaches();
+}
+
+document.getElementById("btn-up")!.addEventListener(
+  "click",
+  () => movePlayerByStep(1, 0),
+);
+document.getElementById("btn-down")!.addEventListener(
+  "click",
+  () => movePlayerByStep(-1, 0),
+);
+document.getElementById("btn-left")!.addEventListener(
+  "click",
+  () => movePlayerByStep(0, -1),
+);
+document.getElementById("btn-right")!.addEventListener(
+  "click",
+  () => movePlayerByStep(0, 1),
+);
+
 // CACHE LOGIC
 
 // Defines the data structure for collectible caches.
@@ -101,11 +150,7 @@ const allCaches: Cache[] = [];
  * Each cache is represented as a small circle with a numeric value tooltip.
  */
 function createCache(i: number, j: number): void {
-  const origin = CLASSROOM_LATLNG;
-  const center = leaflet.latLng(
-    origin.lat + (i + 0.5) * TILE_DEGREES,
-    origin.lng + (j + 0.5) * TILE_DEGREES,
-  );
+  const center = cellToLatLng({ i, j });
 
   const circle = leaflet.circle(center, {
     radius: 5,
