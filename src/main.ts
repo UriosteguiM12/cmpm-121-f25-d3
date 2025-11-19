@@ -290,7 +290,9 @@ function spawnCachesAroundPlayer() {
 
       // Skip if a cache already exists at this cell
       const exists = allCaches.some(
-        (cache) => latLngToCell(cache.center).i === i && latLngToCell(cache.center).j === j
+        (cache) =>
+          latLngToCell(cache.center).i === i &&
+          latLngToCell(cache.center).j === j,
       );
       if (exists) continue;
 
