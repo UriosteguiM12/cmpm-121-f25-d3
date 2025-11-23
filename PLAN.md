@@ -69,7 +69,7 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 - [x] The player is able to move the character about the map or simply scroll the map without moving the character
 - [x] Cells are visible at all times throughout the map regardless of if the arrow buttons where used or the map was dragged
 - [x] As the character moves, only the cells near to their current lovation are available for interaction
-- [] Cells should appear memoryless in the sense that they forget their state when they are no longer visible on the screen
+- [x] Cells should appear memoryless in the sense that they forget their state when they are no longer visible on the screen
 
 #### 3B Crafting
 
