@@ -26,7 +26,12 @@ const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
    TYPES & HELPERS
 ------------------------------------------------------ */
 type GridCell = { i: number; j: number };
-type Cache = { i: number; j: number; circle: leaflet.Circle };
+type Cache = {
+  i: number;
+  j: number;
+  circle: leaflet.Circle;
+  valueMarker?: leaflet.Marker;
+};
 
 // Returns a string key for Map
 const keyOf = (i: number, j: number) => `${i},${j}`;
@@ -144,10 +149,7 @@ document.getElementById("btn-right")!.addEventListener(
 /* ------------------------------------------------------
    DATA STORES (Flyweight + Memento)
 ------------------------------------------------------ */
-// Map of all cell values (Flyweight - generate on demand)
 const cellValues: Map<string, number> = new Map();
-
-// Map of modified cells (Memento - stores picked-up state)
 const modifiedCacheState: Map<string, { pickedUp: boolean }> = new Map();
 
 function getCellValue(i: number, j: number) {
@@ -185,20 +187,25 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     valueSpan.textContent = "0";
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-    messageDiv.textContent = "You picked up the coin!";
   } else if (playerHeldCoin === currentValue) {
     playerHeldCoin *= 2;
     valueSpan.textContent = "0";
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-    messageDiv.textContent = playerHeldCoin === 256
-      ? "You win!"
-      : "You upgraded!";
-  } else {
-    messageDiv.textContent = "You can’t pick this up (value mismatch).";
   }
 
-  statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+  // Update status panel and message
+  if (playerHeldCoin === 256) {
+    messageDiv.textContent = "🎉 You win! 🎉";
+    statusPanelDiv.textContent =
+      `You have: Coin of value ${playerHeldCoin} — You win!`;
+  } else {
+    statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+    if (playerHeldCoin !== null && playerHeldCoin !== 256) {
+      messageDiv.textContent = `You picked up ${currentValue}!`;
+    }
+  }
+
   updateCircleTooltip(cache);
 }
 
@@ -216,13 +223,22 @@ function bindCachePopup(cache: Cache) {
 }
 
 /* ------------------------------------------------------
-   CACHE CREATION & TOOLTIP
+   CACHE CREATION & TOOLTIP + VALUE MARKER
 ------------------------------------------------------ */
 function updateCircleTooltip(cache: Cache) {
   const key = keyOf(cache.i, cache.j);
   const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
   const value = pickedUp ? 0 : getCellValue(cache.i, cache.j);
   cache.circle.setTooltipContent(`${value}`);
+  if (cache.valueMarker) {
+    cache.valueMarker.setIcon(
+      leaflet.divIcon({
+        className: "cell-value-icon",
+        html: `<div>${value}</div>`,
+        iconSize: [20, 20],
+      }),
+    );
+  }
 }
 
 function createCache(i: number, j: number): Cache {
@@ -233,7 +249,18 @@ function createCache(i: number, j: number): Cache {
     fillColor: "#30f",
     fillOpacity: 0.5,
   }).addTo(map);
-  const cache: Cache = { i, j, circle };
+
+  const value = getCellValue(i, j);
+  const valueMarker = leaflet.marker(center, {
+    icon: leaflet.divIcon({
+      className: "cell-value-icon",
+      html: `<div>${value}</div>`,
+      iconSize: [20, 20],
+    }),
+    interactive: false,
+  }).addTo(map);
+
+  const cache: Cache = { i, j, circle, valueMarker };
   bindCachePopup(cache);
   return cache;
 }
@@ -244,8 +271,10 @@ function createCache(i: number, j: number): Cache {
 let visibleCaches: Cache[] = [];
 
 function updateVisibleCaches() {
-  // Remove old visible caches
-  for (const cache of visibleCaches) map.removeLayer(cache.circle);
+  for (const cache of visibleCaches) {
+    map.removeLayer(cache.circle);
+    if (cache.valueMarker) map.removeLayer(cache.valueMarker);
+  }
   visibleCaches = [];
 
   const pi = playerCell.i;
@@ -257,7 +286,6 @@ function updateVisibleCaches() {
       const i = pi + di;
       const j = pj + dj;
 
-      // Flyweight: only spawn cell if luck allows
       if (luck([i, j, "initialValue"].toString()) >= CACHE_SPAWN_PROBABILITY) {
         continue;
       }
@@ -266,9 +294,7 @@ function updateVisibleCaches() {
       const key = keyOf(i, j);
       const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
 
-      if (pickedUp) {
-        cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-      }
+      if (pickedUp) cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
 
       const distance = playerPos.distanceTo(cellToLatLng({ i, j }));
       const inRange = distance <= PLAYER_RANGE_METERS;
