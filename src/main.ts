@@ -133,7 +133,7 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
   .addTo(map);
 
 /* ------------------------------------------------------
-   MOVEMENT INTERFACE
+   MOVEMENT INTERFACE & FACADE
 ------------------------------------------------------ */
 interface PlayerMovement {
   moveBy(dI: number, dJ: number): void;
@@ -146,7 +146,6 @@ class GridPlayerMovement implements PlayerMovement {
     private playerMarker: leaflet.Marker,
     private map: leaflet.Map,
   ) {}
-
   moveBy(dI: number, dJ: number) {
     this.playerCell.i += dI;
     this.playerCell.j += dJ;
@@ -155,7 +154,6 @@ class GridPlayerMovement implements PlayerMovement {
     this.map.panTo(newLatLng);
     updateVisibleCaches();
   }
-
   moveToLatLng(pos: leaflet.LatLng) {
     const { i, j } = latLngToCell(pos);
     this.playerCell.i = i;
@@ -166,11 +164,25 @@ class GridPlayerMovement implements PlayerMovement {
   }
 }
 
-const playerMovement: PlayerMovement = new GridPlayerMovement(
-  playerCell,
-  playerMarker,
-  map,
-);
+// Facade
+class MovementFacade implements PlayerMovement {
+  private currentMovement: PlayerMovement;
+  constructor(initial: PlayerMovement) {
+    this.currentMovement = initial;
+  }
+  moveBy(dI: number, dJ: number) {
+    this.currentMovement.moveBy(dI, dJ);
+  }
+  moveToLatLng(pos: leaflet.LatLng) {
+    this.currentMovement.moveToLatLng(pos);
+  }
+  setMovementStrategy(newMovement: PlayerMovement) {
+    this.currentMovement = newMovement;
+  }
+}
+
+const gridMovement = new GridPlayerMovement(playerCell, playerMarker, map);
+const movementFacade = new MovementFacade(gridMovement);
 
 /* ------------------------------------------------------
    WIRE CONTROLS
@@ -183,7 +195,7 @@ const playerMovement: PlayerMovement = new GridPlayerMovement(
     left: [0, -1],
     right: [0, 1],
   };
-  btn.addEventListener("click", () => playerMovement.moveBy(...moves[dir]));
+  btn.addEventListener("click", () => movementFacade.moveBy(...moves[dir]));
 });
 
 geoBtn.addEventListener("click", () => {
@@ -200,11 +212,20 @@ function enableGeolocationMovement() {
     return;
   }
 
+  const geoMovement: PlayerMovement = {
+    moveBy: (_dI, _dJ) => {
+      console.warn("Cannot use moveBy in geolocation mode");
+    },
+    moveToLatLng: (pos) => movementFacade.moveToLatLng(pos),
+  };
+
+  movementFacade.setMovementStrategy(geoMovement);
+
   navigator.geolocation.watchPosition(
     (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      playerMovement.moveToLatLng(leaflet.latLng(lat, lng));
+      movementFacade.moveToLatLng(
+        leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
+      );
     },
     (err) => console.error("Geolocation error:", err),
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
@@ -226,7 +247,6 @@ function updateCircleTooltip(cache: Cache) {
   const key = keyOf(cache.i, cache.j);
   const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
   const value = pickedUp ? 0 : getCellValue(cache.i, cache.j);
-
   cache.circle.setTooltipContent(`${value}`);
   if (cache.valueMarker) {
     cache.valueMarker.setIcon(
@@ -254,7 +274,6 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
   const key = keyOf(cache.i, cache.j);
   const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
   const currentValue = pickedUp ? 0 : getCellValue(cache.i, cache.j);
-
   const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
   const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
 
