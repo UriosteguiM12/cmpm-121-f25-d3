@@ -8,13 +8,13 @@ import "./_leafletWorkaround.ts"; // fix missing marker images
 // Luck function
 import luck from "./_luck.ts";
 
-// --------------------
-// Constants
-// --------------------
-const CLASSROOM_LATLNG = leaflet.latLng(
-  36.997936938057016,
-  -122.05703507501151,
-);
+/* ------------------------------------------------------
+   CONSTANTS
+   ------------------------------------------------------
+   - Map settings, gameplay parameters, cache probabilities,
+     and coin values.
+------------------------------------------------------ */
+const CLASSROOM_LATLNG = leaflet.latLng(36.997936938057016, -122.05703507501151);
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 22;
@@ -22,14 +22,19 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 const PLAYER_RANGE_METERS = 30;
 const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
 
-// --------------------
-// Small helpers & types
-// --------------------
+/* ------------------------------------------------------
+   TYPES & HELPER FUNCTIONS
+   ------------------------------------------------------
+   - GridCell and Cache types for representing the grid and cache objects
+   - Utility functions for conversions and coin calculations
+------------------------------------------------------ */
 type GridCell = { i: number; j: number };
 type Cache = { i: number; j: number; circle: leaflet.Circle };
 
+// Returns a string key for cacheState
 const keyOf = (i: number, j: number) => `${i},${j}`;
 
+// Converts grid coordinates to LatLng
 function cellToLatLng(cell: GridCell): leaflet.LatLng {
   return leaflet.latLng(
     cell.i * TILE_DEGREES + TILE_DEGREES / 2,
@@ -37,6 +42,7 @@ function cellToLatLng(cell: GridCell): leaflet.LatLng {
   );
 }
 
+// Converts LatLng to grid coordinates
 function latLngToCell(latlng: leaflet.LatLng): GridCell {
   return {
     i: Math.floor(latlng.lat / TILE_DEGREES),
@@ -44,15 +50,19 @@ function latLngToCell(latlng: leaflet.LatLng): GridCell {
   };
 }
 
+// Returns a coin value for a cache based on luck
 function pickCacheValue(i: number, j: number): number {
   const raw = luck([i, j, "initialValue"].toString());
   const index = Math.floor(raw * 1_000_000) % COIN_VALUES.length;
   return COIN_VALUES[index];
 }
 
-// --------------------
-// UI helpers
-// --------------------
+/* ------------------------------------------------------
+   UI SETUP
+   ------------------------------------------------------
+   - Creates panels for map and status display
+   - Creates movement controls
+------------------------------------------------------ */
 function createPanel(id: string, parent: HTMLElement = document.body) {
   const div = document.createElement("div");
   div.id = id;
@@ -76,9 +86,11 @@ controlsDiv.innerHTML = `
   <button class="arrow-btn" id="btn-down">▼</button>
 `;
 
-// --------------------
-// Map setup
-// --------------------
+/* ------------------------------------------------------
+   MAP INITIALIZATION
+   ------------------------------------------------------
+   - Sets up Leaflet map, tile layer, zoom, and disables default controls
+------------------------------------------------------ */
 const map = leaflet.map(mapDiv, {
   center: CLASSROOM_LATLNG,
   zoom: GAMEPLAY_ZOOM_LEVEL,
@@ -100,9 +112,12 @@ leaflet
   )
   .addTo(map);
 
-// --------------------
-// Player
-// --------------------
+/* ------------------------------------------------------
+   PLAYER SETUP
+   ------------------------------------------------------
+   - Initializes player marker, held coin state, and position
+   - Handles movement by button clicks or map panning
+------------------------------------------------------ */
 let playerHeldCoin: number | null = 1;
 statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
 
@@ -124,7 +139,7 @@ function movePlayerByStep(dI: number, dJ: number) {
   updateVisibleCaches();
 }
 
-// wire movement buttons
+// Wire up movement buttons
 document.getElementById("btn-up")!.addEventListener(
   "click",
   () => movePlayerByStep(1, 0),
@@ -142,19 +157,22 @@ document.getElementById("btn-right")!.addEventListener(
   () => movePlayerByStep(0, 1),
 );
 
-// --------------------
-// Cache state + visible caches
-// --------------------
+/* ------------------------------------------------------
+   CACHE STATE MANAGEMENT
+   ------------------------------------------------------
+   - Tracks picked-up state and currently visible caches
+------------------------------------------------------ */
 const cacheState: Record<string, { pickedUp: boolean }> = {};
 let visibleCaches: Cache[] = [];
 
-// --------------------
-// Cache popup helpers
-// --------------------
-function renderCachePopup(
-  cache: Cache,
-  state: { value: number; pickedUp: boolean },
-) {
+/* ------------------------------------------------------
+   CACHE POPUP LOGIC
+   ------------------------------------------------------
+   - Renders popup HTML
+   - Handles coin pickup, upgrade, and win logic
+   - Updates tooltip
+------------------------------------------------------ */
+function renderCachePopup(cache: Cache, state: { value: number, pickedUp: boolean }) {
   const popupDiv = document.createElement("div");
 
   popupDiv.innerHTML = `
@@ -171,9 +189,7 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
   const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
   const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
 
-  const currentValue = cacheState[key].pickedUp
-    ? 0
-    : pickCacheValue(cache.i, cache.j);
+  const currentValue = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
 
   if (playerHeldCoin === null) {
     playerHeldCoin = currentValue;
@@ -187,9 +203,7 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
     valueSpan.textContent = "0";
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-    messageDiv.textContent = playerHeldCoin === 256
-      ? "You win!"
-      : "You upgraded!";
+    messageDiv.textContent = playerHeldCoin === 256 ? "You win!" : "You upgraded!";
     cacheState[key].pickedUp = true;
   } else {
     messageDiv.textContent = "You can’t pick this up (value mismatch).";
@@ -201,36 +215,25 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
 function bindCachePopup(cache: Cache) {
   cache.circle.bindPopup(() => {
     const key = keyOf(cache.i, cache.j);
-    const value = cacheState[key].pickedUp
-      ? 0
-      : pickCacheValue(cache.i, cache.j);
+    const value = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
 
-    const popupDiv = renderCachePopup(cache, {
-      value,
-      pickedUp: cacheState[key].pickedUp,
-    });
-
-    popupDiv.querySelector("#pickup")!.addEventListener(
-      "click",
-      () => handleCachePickup(cache, popupDiv),
-    );
-
+    const popupDiv = renderCachePopup(cache, { value, pickedUp: cacheState[key].pickedUp });
+    popupDiv.querySelector("#pickup")!.addEventListener("click", () => handleCachePickup(cache, popupDiv));
     return popupDiv;
   });
 }
 
-// --------------------
-// Tooltip helper
-// --------------------
+/* ------------------------------------------------------
+   CACHE CREATION & TOOLTIP
+   ------------------------------------------------------
+   - Creates cache circles and binds popups & tooltips
+------------------------------------------------------ */
 function updateCircleTooltip(cache: Cache) {
   const key = keyOf(cache.i, cache.j);
   const value = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
   cache.circle.setTooltipContent(`${value}`);
 }
 
-// --------------------
-// Cache creation
-// --------------------
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
 
@@ -255,9 +258,11 @@ function createCache(i: number, j: number): Cache {
   return cache;
 }
 
-// --------------------
-// Memoryless spawning helpers
-// --------------------
+/* ------------------------------------------------------
+   MEMORYLESS CACHE HELPERS
+   ------------------------------------------------------
+   - Functions to reset, remove, spawn, and style caches
+------------------------------------------------------ */
 function resetOldCaches(caches: Cache[]) {
   for (const cache of caches) {
     cacheState[keyOf(cache.i, cache.j)].pickedUp = false;
@@ -285,7 +290,7 @@ function applyCacheInteractivity(cache: Cache, inRange: boolean) {
       color: "blue",
       fillColor: "#30f",
       fillOpacity: 0.5,
-      interactive: true,
+      interactive: true
     });
   } else {
     cacheState[key].pickedUp = false;
@@ -293,7 +298,7 @@ function applyCacheInteractivity(cache: Cache, inRange: boolean) {
       color: "gray",
       fillColor: "#ccc",
       fillOpacity: 0.2,
-      interactive: false,
+      interactive: false
     });
 
     if (cache.circle.getPopup()) {
@@ -307,9 +312,11 @@ function finalizeCache(cache: Cache) {
   updateCircleTooltip(cache);
 }
 
-// --------------------
-// Memoryless spawning main
-// --------------------
+/* ------------------------------------------------------
+   MEMORYLESS SPAWNING
+   ------------------------------------------------------
+   - Main function to refresh caches around player
+------------------------------------------------------ */
 function updateVisibleCaches() {
   const playerPos = playerMarker.getLatLng();
   const newCaches: Cache[] = [];
@@ -341,9 +348,11 @@ function updateVisibleCaches() {
   visibleCaches = newCaches;
 }
 
-// --------------------
-// Map movement event
-// --------------------
+/* ------------------------------------------------------
+   MAP MOVEMENT EVENT
+   ------------------------------------------------------
+   - Updates caches when the user pans the map
+------------------------------------------------------ */
 map.on("moveend", () => {
   const centerLatLng = map.getCenter();
   const centerCell = latLngToCell(centerLatLng);
@@ -360,7 +369,9 @@ map.on("moveend", () => {
   playerCell.j = prevJ;
 });
 
-// --------------------
-// Initial spawn
-// --------------------
+/* ------------------------------------------------------
+   INITIAL SPAWN
+   ------------------------------------------------------
+   - Populates caches around the player at game start
+------------------------------------------------------ */
 updateVisibleCaches();
