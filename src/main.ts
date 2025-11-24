@@ -125,14 +125,9 @@ geoBtn.id = "geo-btn";
 geoBtn.textContent = "Enable Geolocation Movement";
 document.body.appendChild(geoBtn);
 
-/* ------------------------------------------------------
-   NEW GAME BUTTON
------------------------------------------------------- */
 const newGameBtn = document.createElement("button");
 newGameBtn.id = "new-game-btn";
 newGameBtn.textContent = "Start New Game";
-
-// Place it right under the geolocation button
 geoBtn.insertAdjacentElement("afterend", newGameBtn);
 
 /* ------------------------------------------------------
@@ -164,7 +159,9 @@ leaflet
 ------------------------------------------------------ */
 let playerHeldCoin: number | null = 1;
 const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
+const playerMarker = leaflet
+  .marker(CLASSROOM_LATLNG)
+  .bindTooltip("That's you!")
   .addTo(map);
 
 function updateStatus() {
@@ -185,6 +182,7 @@ class GridPlayerMovement implements PlayerMovement {
     private playerMarker: leaflet.Marker,
     private map: leaflet.Map,
   ) {}
+
   moveBy(dI: number, dJ: number) {
     this.playerCell.i += dI;
     this.playerCell.j += dJ;
@@ -194,6 +192,7 @@ class GridPlayerMovement implements PlayerMovement {
     updateVisibleCaches();
     saveGameState();
   }
+
   moveToLatLng(pos: leaflet.LatLng) {
     const { i, j } = latLngToCell(pos);
     this.playerCell.i = i;
@@ -205,7 +204,6 @@ class GridPlayerMovement implements PlayerMovement {
   }
 }
 
-// Facade
 class MovementFacade implements PlayerMovement {
   private currentMovement: PlayerMovement;
   constructor(initial: PlayerMovement) {
@@ -239,40 +237,76 @@ const movementFacade = new MovementFacade(gridMovement);
   btn.addEventListener("click", () => movementFacade.moveBy(...moves[dir]));
 });
 
-geoBtn.addEventListener("click", () => {
-  enableGeolocationMovement();
-  alert("Geolocation movement enabled!");
-});
-
-newGameBtn.addEventListener("click", () => {
-  startNewGame();
-  alert("New game started!");
-});
-
 /* ------------------------------------------------------
-   GEOLOCATION MOVEMENT
+   GEOLOCATION TOGGLE
 ------------------------------------------------------ */
+let geoWatchId: number | null = null;
+let geoEnabled = false;
+
+geoBtn.addEventListener("click", () => {
+  if (!geoEnabled) {
+    enableGeolocationMovement();
+    geoBtn.textContent = "Disable Geolocation Movement";
+    controlsDiv.style.display = "none";
+  } else {
+    disableGeolocationMovement();
+    geoBtn.textContent = "Enable Geolocation Movement";
+    controlsDiv.style.display = "block";
+  }
+  geoEnabled = !geoEnabled;
+});
+
 function enableGeolocationMovement() {
   if (!navigator.geolocation) {
     alert("Geolocation not supported by this browser.");
     return;
   }
 
+  // Directly use gridMovement so marker updates correctly
   const geoMovement: PlayerMovement = {
     moveBy: (_dI, _dJ) => console.warn("Cannot use moveBy in geolocation mode"),
-    moveToLatLng: (pos) => movementFacade.moveToLatLng(pos),
+    moveToLatLng: (pos) => gridMovement.moveToLatLng(pos),
   };
 
   movementFacade.setMovementStrategy(geoMovement);
 
-  navigator.geolocation.watchPosition(
+  geoWatchId = navigator.geolocation.watchPosition(
     (pos) =>
-      movementFacade.moveToLatLng(
+      geoMovement.moveToLatLng(
         leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
       ),
     (err) => console.error("Geolocation error:", err),
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
   );
+}
+
+function disableGeolocationMovement() {
+  if (geoWatchId !== null) {
+    navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = null;
+  }
+  movementFacade.setMovementStrategy(gridMovement);
+}
+
+/* ------------------------------------------------------
+   NEW GAME BUTTON
+------------------------------------------------------ */
+newGameBtn.addEventListener("click", () => {
+  startNewGame();
+  alert("New game started!");
+});
+
+function startNewGame() {
+  playerCell.i = latLngToCell(CLASSROOM_LATLNG).i;
+  playerCell.j = latLngToCell(CLASSROOM_LATLNG).j;
+  playerMarker.setLatLng(CLASSROOM_LATLNG);
+
+  playerHeldCoin = 1;
+  modifiedCacheState.clear();
+  localStorage.removeItem("gameState");
+
+  updateStatus();
+  updateVisibleCaches();
 }
 
 /* ------------------------------------------------------
@@ -387,12 +421,14 @@ function updateVisibleCaches() {
   });
   visibleCaches = [];
 
-  const pi = playerCell.i, pj = playerCell.j;
+  const pi = playerCell.i,
+    pj = playerCell.j;
   const playerPos = playerMarker.getLatLng();
 
   for (let di = -NEIGHBORHOOD_SIZE; di <= NEIGHBORHOOD_SIZE; di++) {
     for (let dj = -NEIGHBORHOOD_SIZE; dj <= NEIGHBORHOOD_SIZE; dj++) {
-      const i = pi + di, j = pj + dj;
+      const i = pi + di,
+        j = pj + dj;
       if (!shouldSpawnCache(i, j)) continue;
 
       const cache = createCache(i, j);
@@ -415,46 +451,8 @@ function updateVisibleCaches() {
 }
 
 /* ------------------------------------------------------
-   MAP MOVE EVENT
------------------------------------------------------- */
-map.on("moveend", () => {
-  const centerCell = latLngToCell(map.getCenter());
-  const prevI = playerCell.i, prevJ = playerCell.j;
-
-  playerCell.i = centerCell.i;
-  playerCell.j = centerCell.j;
-  updateVisibleCaches();
-
-  playerCell.i = prevI;
-  playerCell.j = prevJ;
-});
-
-/* ------------------------------------------------------
-   NEW GAME FUNCTION
------------------------------------------------------- */
-function startNewGame() {
-  // Reset player position
-  playerCell.i = latLngToCell(CLASSROOM_LATLNG).i;
-  playerCell.j = latLngToCell(CLASSROOM_LATLNG).j;
-  playerMarker.setLatLng(CLASSROOM_LATLNG);
-
-  // Reset player coin
-  playerHeldCoin = 1;
-
-  // Clear modified caches
-  modifiedCacheState.clear();
-
-  // Clear saved state
-  localStorage.removeItem("gameState");
-
-  // Update UI and map
-  updateStatus();
-  updateVisibleCaches();
-}
-
-/* ------------------------------------------------------
    INITIAL SPAWN
 ------------------------------------------------------ */
-loadGameState(); // <- restore game state
+loadGameState();
 updateStatus();
 updateVisibleCaches();
