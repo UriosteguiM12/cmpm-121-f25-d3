@@ -126,6 +126,16 @@ geoBtn.textContent = "Enable Geolocation Movement";
 document.body.appendChild(geoBtn);
 
 /* ------------------------------------------------------
+   NEW GAME BUTTON
+------------------------------------------------------ */
+const newGameBtn = document.createElement("button");
+newGameBtn.id = "new-game-btn";
+newGameBtn.textContent = "Start New Game";
+
+// Place it right under the geolocation button
+geoBtn.insertAdjacentElement("afterend", newGameBtn);
+
+/* ------------------------------------------------------
    MAP INITIALIZATION
 ------------------------------------------------------ */
 const map = leaflet.map(mapDiv, {
@@ -232,6 +242,11 @@ const movementFacade = new MovementFacade(gridMovement);
 geoBtn.addEventListener("click", () => {
   enableGeolocationMovement();
   alert("Geolocation movement enabled!");
+});
+
+newGameBtn.addEventListener("click", () => {
+  startNewGame();
+  alert("New game started!");
 });
 
 /* ------------------------------------------------------
@@ -413,6 +428,29 @@ map.on("moveend", () => {
   playerCell.i = prevI;
   playerCell.j = prevJ;
 });
+
+/* ------------------------------------------------------
+   NEW GAME FUNCTION
+------------------------------------------------------ */
+function startNewGame() {
+  // Reset player position
+  playerCell.i = latLngToCell(CLASSROOM_LATLNG).i;
+  playerCell.j = latLngToCell(CLASSROOM_LATLNG).j;
+  playerMarker.setLatLng(CLASSROOM_LATLNG);
+
+  // Reset player coin
+  playerHeldCoin = 1;
+
+  // Clear modified caches
+  modifiedCacheState.clear();
+
+  // Clear saved state
+  localStorage.removeItem("gameState");
+
+  // Update UI and map
+  updateStatus();
+  updateVisibleCaches();
+}
 
 /* ------------------------------------------------------
    INITIAL SPAWN
