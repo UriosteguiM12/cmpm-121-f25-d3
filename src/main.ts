@@ -14,7 +14,10 @@ import luck from "./_luck.ts";
    - Map settings, gameplay parameters, cache probabilities,
      and coin values.
 ------------------------------------------------------ */
-const CLASSROOM_LATLNG = leaflet.latLng(36.997936938057016, -122.05703507501151);
+const CLASSROOM_LATLNG = leaflet.latLng(
+  36.997936938057016,
+  -122.05703507501151,
+);
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 22;
@@ -172,7 +175,10 @@ let visibleCaches: Cache[] = [];
    - Handles coin pickup, upgrade, and win logic
    - Updates tooltip
 ------------------------------------------------------ */
-function renderCachePopup(cache: Cache, state: { value: number, pickedUp: boolean }) {
+function renderCachePopup(
+  cache: Cache,
+  state: { value: number; pickedUp: boolean },
+) {
   const popupDiv = document.createElement("div");
 
   popupDiv.innerHTML = `
@@ -189,7 +195,9 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
   const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
   const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
 
-  const currentValue = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
+  const currentValue = cacheState[key].pickedUp
+    ? 0
+    : pickCacheValue(cache.i, cache.j);
 
   if (playerHeldCoin === null) {
     playerHeldCoin = currentValue;
@@ -203,7 +211,9 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
     valueSpan.textContent = "0";
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-    messageDiv.textContent = playerHeldCoin === 256 ? "You win!" : "You upgraded!";
+    messageDiv.textContent = playerHeldCoin === 256
+      ? "You win!"
+      : "You upgraded!";
     cacheState[key].pickedUp = true;
   } else {
     messageDiv.textContent = "You can’t pick this up (value mismatch).";
@@ -215,10 +225,18 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
 function bindCachePopup(cache: Cache) {
   cache.circle.bindPopup(() => {
     const key = keyOf(cache.i, cache.j);
-    const value = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
+    const value = cacheState[key].pickedUp
+      ? 0
+      : pickCacheValue(cache.i, cache.j);
 
-    const popupDiv = renderCachePopup(cache, { value, pickedUp: cacheState[key].pickedUp });
-    popupDiv.querySelector("#pickup")!.addEventListener("click", () => handleCachePickup(cache, popupDiv));
+    const popupDiv = renderCachePopup(cache, {
+      value,
+      pickedUp: cacheState[key].pickedUp,
+    });
+    popupDiv.querySelector("#pickup")!.addEventListener(
+      "click",
+      () => handleCachePickup(cache, popupDiv),
+    );
     return popupDiv;
   });
 }
@@ -290,7 +308,7 @@ function applyCacheInteractivity(cache: Cache, inRange: boolean) {
       color: "blue",
       fillColor: "#30f",
       fillOpacity: 0.5,
-      interactive: true
+      interactive: true,
     });
   } else {
     cacheState[key].pickedUp = false;
@@ -298,7 +316,7 @@ function applyCacheInteractivity(cache: Cache, inRange: boolean) {
       color: "gray",
       fillColor: "#ccc",
       fillOpacity: 0.2,
-      interactive: false
+      interactive: false,
     });
 
     if (cache.circle.getPopup()) {
