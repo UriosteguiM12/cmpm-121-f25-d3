@@ -98,13 +98,13 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 ### 3D Software requirements
 
 - [x] The browser Geolocation API must be used as an alternative control method for moving the player character
-- [] The movement system must be implimented behind an interface / abstraction layer so that the rest of the game does not depends on the specific movement mechanism
-- [] The concrete implementations of movement controls should follow the Facade design pattern, exposing only a simple, unified movement API to the rest of the game
-- [] The game must use the browser's localStorage API to save and restore game state across page loads
+- [x] The movement system must be implimented behind an interface / abstraction layer so that the rest of the game does not depends on the specific movement mechanism
+- [x] The concrete implementations of movement controls should follow the Facade design pattern, exposing only a simple, unified movement API to the rest of the game
+- [x] The game must use the browser's localStorage API to save and restore game state across page loads
 
 ### 3D Gameplay requirements
 
 - [] The player can more their character by moving their device in the real world (geolocation-based movement)
-- [] Game state persists across page reloads so that the player can continue from where they left off
+- [x] Game state persists across page reloads so that the player can continue from where they left off
 - [] The player has a way to start a new game
 - [] The player can switch between button-based and geolocation-based movement
