@@ -104,7 +104,7 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 
 ### 3D Gameplay requirements
 
-- [] The player can more their character by moving their device in the real world (geolocation-based movement)
+- [x] The player can more their character by moving their device in the real world (geolocation-based movement)
 - [x] Game state persists across page reloads so that the player can continue from where they left off
-- [] The player has a way to start a new game
-- [] The player can switch between button-based and geolocation-based movement
+- [x] The player has a way to start a new game
+- [x] The player can switch between button-based and geolocation-based movement
