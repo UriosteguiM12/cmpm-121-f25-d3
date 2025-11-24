@@ -443,7 +443,7 @@ function bindCachePopup(cache: Cache) {
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
   const circle = leaflet.circle(center, {
-    radius: 7,
+    radius: 10,
     color: "blue",
     fillColor: "#30f",
     fillOpacity: 0.5,
