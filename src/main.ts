@@ -17,7 +17,7 @@ import luck from "./_luck.ts";
 ------------------------------------------------------ */
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
-  -122.05703507501151
+  -122.05703507501151,
 ); // Reference location (classroom)
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
@@ -44,7 +44,10 @@ const keyOf = (i: number, j: number) => `${i},${j}`;
 
 // Convert grid coordinates to lat/lng
 const cellToLatLng = ({ i, j }: GridCell) =>
-  leaflet.latLng(i * TILE_DEGREES + TILE_DEGREES / 2, j * TILE_DEGREES + TILE_DEGREES / 2);
+  leaflet.latLng(
+    i * TILE_DEGREES + TILE_DEGREES / 2,
+    j * TILE_DEGREES + TILE_DEGREES / 2,
+  );
 
 // Convert lat/lng to grid coordinates
 const latLngToCell = (latlng: leaflet.LatLng) => ({
@@ -99,7 +102,8 @@ function loadGameState() {
     playerHeldCoin = state.playerHeldCoin;
     modifiedCacheState.clear();
     state.modifiedCacheState.forEach(
-      ([key, value]: [string, { pickedUp: boolean }]) => modifiedCacheState.set(key, value)
+      ([key, value]: [string, { pickedUp: boolean }]) =>
+        modifiedCacheState.set(key, value),
     );
   } catch (err) {
     console.error("Failed to load game state:", err);
@@ -168,7 +172,7 @@ leaflet
       attribution:
         '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, ' +
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }
+    },
   )
   .addTo(map);
 
@@ -201,7 +205,7 @@ class GridPlayerMovement implements PlayerMovement {
   constructor(
     private playerCell: GridCell,
     private playerMarker: leaflet.Marker,
-    private map: leaflet.Map
+    private map: leaflet.Map,
   ) {}
 
   // Move by relative grid coordinates
@@ -298,8 +302,7 @@ function enableGeolocationMovement() {
 
   // Strategy for geolocation movement
   const geoMovement: PlayerMovement = {
-    moveBy: (_dI, _dJ) =>
-      console.warn("Cannot use moveBy in geolocation mode"),
+    moveBy: (_dI, _dJ) => console.warn("Cannot use moveBy in geolocation mode"),
     moveToLatLng: (pos) => gridMovement.moveToLatLng(pos),
   };
 
@@ -308,10 +311,10 @@ function enableGeolocationMovement() {
   geoWatchId = navigator.geolocation.watchPosition(
     (pos) =>
       geoMovement.moveToLatLng(
-        leaflet.latLng(pos.coords.latitude, pos.coords.longitude)
+        leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
       ),
     (err) => console.error("Geolocation error:", err),
-    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
   );
 }
 
@@ -373,7 +376,7 @@ function updateCircleTooltip(cache: Cache) {
         className: "cell-value-icon",
         html: `<div>${value}</div>`,
         iconSize: [20, 20],
-      })
+      }),
     );
   }
 }
@@ -430,7 +433,7 @@ function bindCachePopup(cache: Cache) {
     const popupDiv = renderCachePopup(cache, pickedUp);
     popupDiv.querySelector("#pickup")!.addEventListener(
       "click",
-      () => handleCachePickup(cache, popupDiv)
+      () => handleCachePickup(cache, popupDiv),
     );
     return popupDiv;
   });
