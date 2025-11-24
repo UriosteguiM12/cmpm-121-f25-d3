@@ -1,4 +1,3 @@
-
 import leaflet from "leaflet";
 
 // Styles
@@ -69,7 +68,6 @@ leaflet.tileLayer(
 // PLAYER SETUP
 let playerHeldCoin: number | null = 1;
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
-
   .addTo(map);
 
 statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
@@ -137,7 +135,6 @@ function pickCacheValue(i: number, j: number): number {
 }
 
 function createCache(i: number, j: number): Cache {
-
   const center = cellToLatLng({ i, j });
 
   const circle = leaflet.circle(center, {
@@ -204,7 +201,6 @@ function bindCachePopup(cache: Cache) {
         cacheState[key].pickedUp = true;
       } else {
         messageDiv.textContent = "You can’t pick this up (value mismatch).";
-
       }
 
       // Update tooltip to reflect picked-up
