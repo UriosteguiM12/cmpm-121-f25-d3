@@ -179,7 +179,6 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
   const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
   const currentValue = pickedUp ? 0 : getCellValue(cache.i, cache.j);
 
-  const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
   const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
 
   if (playerHeldCoin === null) {
@@ -192,20 +191,13 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     valueSpan.textContent = "0";
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-  }
 
-  // Update status panel and message
-  if (playerHeldCoin === 256) {
-    messageDiv.textContent = "🎉 You win! 🎉";
-    statusPanelDiv.textContent =
-      `You have: Coin of value ${playerHeldCoin} — You win!`;
-  } else {
-    statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
-    if (playerHeldCoin !== null && playerHeldCoin !== 256) {
-      messageDiv.textContent = `You picked up ${currentValue}!`;
+    if (playerHeldCoin === 256) {
+      alert("🎉 You win! 🎉");
     }
   }
 
+  statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
   updateCircleTooltip(cache);
 }
 
@@ -271,6 +263,7 @@ function createCache(i: number, j: number): Cache {
 let visibleCaches: Cache[] = [];
 
 function updateVisibleCaches() {
+  // Remove old caches + value markers
   for (const cache of visibleCaches) {
     map.removeLayer(cache.circle);
     if (cache.valueMarker) map.removeLayer(cache.valueMarker);
@@ -300,13 +293,26 @@ function updateVisibleCaches() {
       const inRange = distance <= PLAYER_RANGE_METERS;
 
       cache.circle.setStyle({
-        interactive: inRange,
         fillOpacity: inRange ? 0.5 : 0.2,
         color: inRange ? "blue" : "gray",
         fillColor: inRange ? "#30f" : "#ccc",
       });
 
-      updateCircleTooltip(cache);
+      if (inRange) bindCachePopup(cache);
+      else cache.circle.unbindPopup();
+
+      if (cache.valueMarker) {
+        const value = pickedUp ? 0 : getCellValue(i, j);
+        cache.valueMarker.setLatLng(cellToLatLng({ i, j }));
+        cache.valueMarker.setIcon(
+          leaflet.divIcon({
+            className: "cell-value-icon",
+            html: `<div>${value}</div>`,
+            iconSize: [20, 20],
+          }),
+        );
+      }
+
       visibleCaches.push(cache);
     }
   }
