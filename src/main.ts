@@ -8,32 +8,9 @@ import "./_leafletWorkaround.ts"; // fix missing marker images
 // Luck function
 import luck from "./_luck.ts";
 
-// UI SETUP
-function createPanel(id: string, parent: HTMLElement = document.body) {
-  const div = document.createElement("div");
-  div.id = id;
-  parent.append(div);
-  return div;
-}
-
-const mapDiv = createPanel("map");
-const statusPanelDiv = createPanel("statusPanel");
-
-// Movement buttons
-const controlsDiv = document.createElement("div");
-controlsDiv.id = "movementControls";
-document.body.appendChild(controlsDiv);
-
-controlsDiv.innerHTML = `
-  <button class="arrow-btn" id="btn-up">▲</button>
-  <div class="middle-row">
-    <button class="arrow-btn" id="btn-left">◀</button>
-    <button class="arrow-btn" id="btn-right">▶</button>
-  </div>
-  <button class="arrow-btn" id="btn-down">▼</button>
-`;
-
-// CONSTANTS
+// --------------------
+// Constants
+// --------------------
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
   -122.05703507501151,
@@ -45,34 +22,13 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 const PLAYER_RANGE_METERS = 30;
 const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
 
-// MAP SETUP
-const map = leaflet.map(mapDiv, {
-  center: CLASSROOM_LATLNG,
-  zoom: GAMEPLAY_ZOOM_LEVEL,
-  minZoom: GAMEPLAY_ZOOM_LEVEL,
-  maxZoom: GAMEPLAY_ZOOM_LEVEL,
-  zoomControl: false,
-  scrollWheelZoom: false,
-});
-
-leaflet.tileLayer(
-  "https://tile.thunderforest.com/pioneer/{z}/{x}/{y}.png?apikey=3571fe386fc0421aad3eb2983e8ff8b3",
-  {
-    maxZoom: 19,
-    attribution:
-      '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, ' +
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  },
-).addTo(map);
-
-// PLAYER SETUP
-let playerHeldCoin: number | null = 1;
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
-  .addTo(map);
-
-statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
-
+// --------------------
+// Small helpers & types
+// --------------------
 type GridCell = { i: number; j: number };
+type Cache = { i: number; j: number; circle: leaflet.Circle };
+
+const keyOf = (i: number, j: number) => `${i},${j}`;
 
 function cellToLatLng(cell: GridCell): leaflet.LatLng {
   return leaflet.latLng(
@@ -88,7 +44,74 @@ function latLngToCell(latlng: leaflet.LatLng): GridCell {
   };
 }
 
+function pickCacheValue(i: number, j: number): number {
+  const raw = luck([i, j, "initialValue"].toString());
+  const index = Math.floor(raw * 1_000_000) % COIN_VALUES.length;
+  return COIN_VALUES[index];
+}
+
+// --------------------
+// UI helpers
+// --------------------
+function createPanel(id: string, parent: HTMLElement = document.body) {
+  const div = document.createElement("div");
+  div.id = id;
+  parent.append(div);
+  return div;
+}
+
+const mapDiv = createPanel("map");
+const statusPanelDiv = createPanel("statusPanel");
+
+const controlsDiv = document.createElement("div");
+controlsDiv.id = "movementControls";
+document.body.appendChild(controlsDiv);
+
+controlsDiv.innerHTML = `
+  <button class="arrow-btn" id="btn-up">▲</button>
+  <div class="middle-row">
+    <button class="arrow-btn" id="btn-left">◀</button>
+    <button class="arrow-btn" id="btn-right">▶</button>
+  </div>
+  <button class="arrow-btn" id="btn-down">▼</button>
+`;
+
+// --------------------
+// Map setup
+// --------------------
+const map = leaflet.map(mapDiv, {
+  center: CLASSROOM_LATLNG,
+  zoom: GAMEPLAY_ZOOM_LEVEL,
+  minZoom: GAMEPLAY_ZOOM_LEVEL,
+  maxZoom: GAMEPLAY_ZOOM_LEVEL,
+  zoomControl: false,
+  scrollWheelZoom: false,
+});
+
+leaflet
+  .tileLayer(
+    "https://tile.thunderforest.com/pioneer/{z}/{x}/{y}.png?apikey=3571fe386fc0421aad3eb2983e8ff8b3",
+    {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, ' +
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  )
+  .addTo(map);
+
+// --------------------
+// Player
+// --------------------
+let playerHeldCoin: number | null = 1;
+statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+
 const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
+
+const playerMarker = leaflet
+  .marker(CLASSROOM_LATLNG)
+  .bindTooltip("That's you!")
+  .addTo(map);
 
 function movePlayerByStep(dI: number, dJ: number) {
   playerCell.i += dI;
@@ -101,7 +124,7 @@ function movePlayerByStep(dI: number, dJ: number) {
   updateVisibleCaches();
 }
 
-// Movement buttons
+// wire movement buttons
 document.getElementById("btn-up")!.addEventListener(
   "click",
   () => movePlayerByStep(1, 0),
@@ -119,21 +142,95 @@ document.getElementById("btn-right")!.addEventListener(
   () => movePlayerByStep(0, 1),
 );
 
-// CACHE LOGIC
-type Cache = { i: number; j: number; circle: leaflet.Circle };
-
-// Track which caches are visible in the current neighborhood
+// --------------------
+// Cache state + visible caches
+// --------------------
+const cacheState: Record<string, { pickedUp: boolean }> = {};
 let visibleCaches: Cache[] = [];
 
-// Track picked-up state per cell
-const cacheState: Record<string, { pickedUp: boolean }> = {};
+// --------------------
+// Cache popup helpers
+// --------------------
+function renderCachePopup(
+  cache: Cache,
+  state: { value: number; pickedUp: boolean },
+) {
+  const popupDiv = document.createElement("div");
 
-function pickCacheValue(i: number, j: number): number {
-  const raw = luck([i, j, "initialValue"].toString());
-  const index = Math.floor(raw * 1_000_000) % COIN_VALUES.length;
-  return COIN_VALUES[index];
+  popupDiv.innerHTML = `
+    <div>Cache at "${cache.i},${cache.j}" — value: <span id="value">${state.value}</span></div>
+    <button id="pickup">Pick up</button>
+    <div id="message"></div>
+  `;
+
+  return popupDiv;
 }
 
+function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
+  const key = keyOf(cache.i, cache.j);
+  const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
+  const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
+
+  const currentValue = cacheState[key].pickedUp
+    ? 0
+    : pickCacheValue(cache.i, cache.j);
+
+  if (playerHeldCoin === null) {
+    playerHeldCoin = currentValue;
+    statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+    valueSpan.textContent = "0";
+    cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
+    messageDiv.textContent = "You picked up the coin!";
+    cacheState[key].pickedUp = true;
+  } else if (playerHeldCoin === currentValue) {
+    playerHeldCoin *= 2;
+    statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+    valueSpan.textContent = "0";
+    cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
+    messageDiv.textContent = playerHeldCoin === 256
+      ? "You win!"
+      : "You upgraded!";
+    cacheState[key].pickedUp = true;
+  } else {
+    messageDiv.textContent = "You can’t pick this up (value mismatch).";
+  }
+
+  updateCircleTooltip(cache);
+}
+
+function bindCachePopup(cache: Cache) {
+  cache.circle.bindPopup(() => {
+    const key = keyOf(cache.i, cache.j);
+    const value = cacheState[key].pickedUp
+      ? 0
+      : pickCacheValue(cache.i, cache.j);
+
+    const popupDiv = renderCachePopup(cache, {
+      value,
+      pickedUp: cacheState[key].pickedUp,
+    });
+
+    popupDiv.querySelector("#pickup")!.addEventListener(
+      "click",
+      () => handleCachePickup(cache, popupDiv),
+    );
+
+    return popupDiv;
+  });
+}
+
+// --------------------
+// Tooltip helper
+// --------------------
+function updateCircleTooltip(cache: Cache) {
+  const key = keyOf(cache.i, cache.j);
+  const value = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
+  cache.circle.setTooltipContent(`${value}`);
+}
+
+// --------------------
+// Cache creation
+// --------------------
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
 
@@ -144,7 +241,7 @@ function createCache(i: number, j: number): Cache {
     fillOpacity: 0.5,
   }).addTo(map);
 
-  const key = `${i},${j}`;
+  const key = keyOf(i, j);
   if (!cacheState[key]) cacheState[key] = { pickedUp: false };
 
   circle.bindTooltip(`${pickCacheValue(i, j)}`, {
@@ -158,132 +255,95 @@ function createCache(i: number, j: number): Cache {
   return cache;
 }
 
-function bindCachePopup(cache: Cache) {
-  cache.circle.bindPopup(() => {
-    const key = `${cache.i},${cache.j}`;
-    const value = cacheState[key].pickedUp
-      ? 0
-      : pickCacheValue(cache.i, cache.j);
+// --------------------
+// Memoryless spawning helpers
+// --------------------
+function resetOldCaches(caches: Cache[]) {
+  for (const cache of caches) {
+    cacheState[keyOf(cache.i, cache.j)].pickedUp = false;
+  }
+}
 
-    const popupDiv = document.createElement("div");
-    popupDiv.innerHTML = `
-      <div>Cache at "${cache.i},${cache.j}" — value: <span id="value">${value}</span></div>
-      <button id="pickup">Pick up</button>
-      <div id="message"></div>
-    `;
+function removeOldCacheLayers(caches: Cache[], map: leaflet.Map) {
+  for (const cache of caches) {
+    map.removeLayer(cache.circle);
+  }
+}
 
-    const pickupBtn = popupDiv.querySelector<HTMLButtonElement>("#pickup")!;
-    const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
-    const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
+function trySpawnCache(i: number, j: number): Cache | null {
+  if (luck([i, j, "initialValue"].toString()) < CACHE_SPAWN_PROBABILITY) {
+    return createCache(i, j);
+  }
+  return null;
+}
 
-    pickupBtn.addEventListener("click", () => {
-      const currentValue = cacheState[key].pickedUp
-        ? 0
-        : pickCacheValue(cache.i, cache.j);
+function applyCacheInteractivity(cache: Cache, inRange: boolean) {
+  const key = keyOf(cache.i, cache.j);
 
-      if (playerHeldCoin === null) {
-        playerHeldCoin = currentValue;
-        statusPanelDiv.textContent =
-          `You have: Coin of value ${playerHeldCoin}`;
-        valueSpan.textContent = "0";
-        cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-        messageDiv.textContent = "You picked up the coin!";
-        cacheState[key].pickedUp = true;
-      } else if (playerHeldCoin === currentValue) {
-        playerHeldCoin *= 2;
-        statusPanelDiv.textContent =
-          `You have: Coin of value ${playerHeldCoin}`;
-        valueSpan.textContent = "0";
-        cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-        messageDiv.textContent = playerHeldCoin === 256
-          ? "You win!"
-          : "You upgraded!";
-        cacheState[key].pickedUp = true;
-      } else {
-        messageDiv.textContent = "You can’t pick this up (value mismatch).";
-      }
-
-      // Update tooltip to reflect picked-up
-      updateCircleTooltip(cache);
+  if (inRange) {
+    cache.circle.setStyle({
+      color: "blue",
+      fillColor: "#30f",
+      fillOpacity: 0.5,
+      interactive: true,
+    });
+  } else {
+    cacheState[key].pickedUp = false;
+    cache.circle.setStyle({
+      color: "gray",
+      fillColor: "#ccc",
+      fillOpacity: 0.2,
+      interactive: false,
     });
 
-    return popupDiv;
-  });
+    if (cache.circle.getPopup()) {
+      cache.circle.unbindPopup();
+      cache.circle.closePopup();
+    }
+  }
 }
 
-function updateCircleTooltip(cache: Cache) {
-  const key = `${cache.i},${cache.j}`;
-  const value = cacheState[key].pickedUp ? 0 : pickCacheValue(cache.i, cache.j);
-  cache.circle.setTooltipContent(`${value}`);
+function finalizeCache(cache: Cache) {
+  updateCircleTooltip(cache);
 }
 
-// MEMORYLESS CACHE SPAWNING
+// --------------------
+// Memoryless spawning main
+// --------------------
 function updateVisibleCaches() {
   const playerPos = playerMarker.getLatLng();
   const newCaches: Cache[] = [];
 
-  // Reset memory for all cells that went off-screen
-  for (const cache of visibleCaches) {
-    const key = `${cache.i},${cache.j}`;
-    cacheState[key].pickedUp = false;
-  }
+  resetOldCaches(visibleCaches);
+  removeOldCacheLayers(visibleCaches, map);
 
-  // Remove old caches from map
-  for (const cache of visibleCaches) {
-    map.removeLayer(cache.circle);
-  }
-  visibleCaches = [];
-
-  // Spawn new caches around player
-  const playerI = playerCell.i;
-  const playerJ = playerCell.j;
+  const pi = playerCell.i;
+  const pj = playerCell.j;
 
   for (let di = -NEIGHBORHOOD_SIZE; di <= NEIGHBORHOOD_SIZE; di++) {
     for (let dj = -NEIGHBORHOOD_SIZE; dj <= NEIGHBORHOOD_SIZE; dj++) {
-      const i = playerI + di;
-      const j = playerJ + dj;
+      const i = pi + di;
+      const j = pj + dj;
 
-      if (luck([i, j, "initialValue"].toString()) < CACHE_SPAWN_PROBABILITY) {
-        const cache = createCache(i, j);
+      const cache = trySpawnCache(i, j);
+      if (!cache) continue;
 
-        // Only interactive if in range
-        if (
-          playerPos.distanceTo(cellToLatLng({ i, j })) <= PLAYER_RANGE_METERS
-        ) {
-          cache.circle.setStyle({
-            color: "blue",
-            fillColor: "#30f",
-            fillOpacity: 0.5,
-            interactive: true,
-          });
-        } else {
-          // Reset picked-up if leaving range
-          const key = `${i},${j}`;
-          cacheState[key].pickedUp = false;
+      const inRange =
+        playerPos.distanceTo(cellToLatLng({ i, j })) <= PLAYER_RANGE_METERS;
 
-          cache.circle.setStyle({
-            color: "gray",
-            fillColor: "#ccc",
-            fillOpacity: 0.2,
-            interactive: false,
-          });
+      applyCacheInteractivity(cache, inRange);
+      finalizeCache(cache);
 
-          if (cache.circle.getPopup()) {
-            cache.circle.unbindPopup();
-            cache.circle.closePopup();
-          }
-        }
-
-        updateCircleTooltip(cache); // update tooltip value
-        newCaches.push(cache);
-      }
+      newCaches.push(cache);
     }
   }
 
   visibleCaches = newCaches;
 }
 
-// PLAYER MOVEMENT + MAP EVENTS
+// --------------------
+// Map movement event
+// --------------------
 map.on("moveend", () => {
   const centerLatLng = map.getCenter();
   const centerCell = latLngToCell(centerLatLng);
@@ -300,5 +360,7 @@ map.on("moveend", () => {
   playerCell.j = prevJ;
 });
 
-// Initialize first spawn
+// --------------------
+// Initial spawn
+// --------------------
 updateVisibleCaches();
