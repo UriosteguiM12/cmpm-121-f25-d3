@@ -440,8 +440,16 @@ function bindCachePopup(cache: Cache) {
 }
 
 function bindCacheTap(cache: Cache) {
-  // When a user taps/clicks the cache circle
   cache.circle.on("click", () => {
+    const playerPos = playerMarker.getLatLng();
+    const cachePos = cellToLatLng({ i: cache.i, j: cache.j });
+    const distance = playerPos.distanceTo(cachePos);
+
+    if (distance > PLAYER_RANGE_METERS) {
+      alert("You are too far away to open this cache.");
+      return;
+    }
+
     const key = keyOf(cache.i, cache.j);
     const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
 
