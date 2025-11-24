@@ -74,3 +74,21 @@ Key gameplay challenge: Can players collect and trade coins from nearby location
 #### 3B Crafting
 
 - [x] The player should now be required to achieve a coin value of 256 for victory to be declared
+
+## D3.c: Object persistence
+
+### 3C Software requirements
+
+#### 3C Patterns
+
+- [] Cells that are outside the player's visible range should not consume memory unless they have been modified
+- [] Implement a Flyweight-like strategy where unmodified, off-screen cells are represented by shared data or generated on demand
+- [] When a player modifies a cell, the cell's state should be preserved even when it crolls off-screen
+- [] Apply a Memento-like serialization strategy to store these modifications separately from teh default cell data
+
+### 3C Gameplay requirements
+
+#### 3C Map
+
+- [] Cells should behave as if they "remember" their state when they leave the visible map area
+- [] The game should preserve modifications to a cel while it is off-screen
