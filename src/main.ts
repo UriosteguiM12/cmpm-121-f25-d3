@@ -1,4 +1,4 @@
-// @deno-types="npm:@types/leaflet"
+
 import leaflet from "leaflet";
 
 // Styles
@@ -69,7 +69,9 @@ leaflet.tileLayer(
 // PLAYER SETUP
 let playerHeldCoin: number | null = 1;
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
+
   .addTo(map);
+
 statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
 
 type GridCell = { i: number; j: number };
@@ -93,8 +95,10 @@ const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
 function movePlayerByStep(dI: number, dJ: number) {
   playerCell.i += dI;
   playerCell.j += dJ;
+
   const newLatLng = cellToLatLng(playerCell);
   playerMarker.setLatLng(newLatLng);
+
   map.panTo(newLatLng);
   updateVisibleCaches();
 }
@@ -133,7 +137,9 @@ function pickCacheValue(i: number, j: number): number {
 }
 
 function createCache(i: number, j: number): Cache {
+
   const center = cellToLatLng({ i, j });
+
   const circle = leaflet.circle(center, {
     radius: 5,
     color: "blue",
@@ -168,6 +174,7 @@ function bindCachePopup(cache: Cache) {
       <button id="pickup">Pick up</button>
       <div id="message"></div>
     `;
+
     const pickupBtn = popupDiv.querySelector<HTMLButtonElement>("#pickup")!;
     const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
     const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
@@ -197,6 +204,7 @@ function bindCachePopup(cache: Cache) {
         cacheState[key].pickedUp = true;
       } else {
         messageDiv.textContent = "You can’t pick this up (value mismatch).";
+
       }
 
       // Update tooltip to reflect picked-up
@@ -218,6 +226,12 @@ function updateVisibleCaches() {
   const playerPos = playerMarker.getLatLng();
   const newCaches: Cache[] = [];
 
+  // Reset memory for all cells that went off-screen
+  for (const cache of visibleCaches) {
+    const key = `${cache.i},${cache.j}`;
+    cacheState[key].pickedUp = false;
+  }
+
   // Remove old caches from map
   for (const cache of visibleCaches) {
     map.removeLayer(cache.circle);
@@ -227,6 +241,7 @@ function updateVisibleCaches() {
   // Spawn new caches around player
   const playerI = playerCell.i;
   const playerJ = playerCell.j;
+
   for (let di = -NEIGHBORHOOD_SIZE; di <= NEIGHBORHOOD_SIZE; di++) {
     for (let dj = -NEIGHBORHOOD_SIZE; dj <= NEIGHBORHOOD_SIZE; dj++) {
       const i = playerI + di;
@@ -274,7 +289,19 @@ function updateVisibleCaches() {
 
 // PLAYER MOVEMENT + MAP EVENTS
 map.on("moveend", () => {
+  const centerLatLng = map.getCenter();
+  const centerCell = latLngToCell(centerLatLng);
+
+  const prevI = playerCell.i;
+  const prevJ = playerCell.j;
+
+  playerCell.i = centerCell.i;
+  playerCell.j = centerCell.j;
+
   updateVisibleCaches();
+
+  playerCell.i = prevI;
+  playerCell.j = prevJ;
 });
 
 // Initialize first spawn
