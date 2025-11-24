@@ -65,6 +65,36 @@ function getCellValue(i: number, j: number) {
 }
 
 /* ------------------------------------------------------
+   LOCAL STORAGE FUNCTIONS
+------------------------------------------------------ */
+function saveGameState() {
+  const state = {
+    playerCell,
+    playerHeldCoin,
+    modifiedCacheState: Array.from(modifiedCacheState.entries()),
+  };
+  localStorage.setItem("gameState", JSON.stringify(state));
+}
+
+function loadGameState() {
+  const saved = localStorage.getItem("gameState");
+  if (!saved) return;
+  try {
+    const state = JSON.parse(saved);
+    playerCell.i = state.playerCell.i;
+    playerCell.j = state.playerCell.j;
+    playerHeldCoin = state.playerHeldCoin;
+    modifiedCacheState.clear();
+    state.modifiedCacheState.forEach(
+      ([key, value]: [string, { pickedUp: boolean }]) =>
+        modifiedCacheState.set(key, value)
+    );
+  } catch (err) {
+    console.error("Failed to load game state:", err);
+  }
+}
+
+/* ------------------------------------------------------
    UI SETUP
 ------------------------------------------------------ */
 function createPanel(id: string, parent: HTMLElement = document.body) {
@@ -123,14 +153,12 @@ leaflet
    PLAYER SETUP
 ------------------------------------------------------ */
 let playerHeldCoin: number | null = 1;
+const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
+const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!").addTo(map);
+
 function updateStatus() {
   statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
 }
-updateStatus();
-
-const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
-  .addTo(map);
 
 /* ------------------------------------------------------
    MOVEMENT INTERFACE & FACADE
@@ -153,6 +181,7 @@ class GridPlayerMovement implements PlayerMovement {
     this.playerMarker.setLatLng(newLatLng);
     this.map.panTo(newLatLng);
     updateVisibleCaches();
+    saveGameState();
   }
   moveToLatLng(pos: leaflet.LatLng) {
     const { i, j } = latLngToCell(pos);
@@ -161,6 +190,7 @@ class GridPlayerMovement implements PlayerMovement {
     this.playerMarker.setLatLng(pos);
     this.map.panTo(pos);
     updateVisibleCaches();
+    saveGameState();
   }
 }
 
@@ -213,20 +243,16 @@ function enableGeolocationMovement() {
   }
 
   const geoMovement: PlayerMovement = {
-    moveBy: (_dI, _dJ) => {
-      console.warn("Cannot use moveBy in geolocation mode");
-    },
+    moveBy: (_dI, _dJ) => console.warn("Cannot use moveBy in geolocation mode"),
     moveToLatLng: (pos) => movementFacade.moveToLatLng(pos),
   };
 
   movementFacade.setMovementStrategy(geoMovement);
 
   navigator.geolocation.watchPosition(
-    (pos) => {
-      movementFacade.moveToLatLng(
-        leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
-      );
-    },
+    (pos) => movementFacade.moveToLatLng(
+      leaflet.latLng(pos.coords.latitude, pos.coords.longitude)
+    ),
     (err) => console.error("Geolocation error:", err),
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
   );
@@ -250,11 +276,7 @@ function updateCircleTooltip(cache: Cache) {
   cache.circle.setTooltipContent(`${value}`);
   if (cache.valueMarker) {
     cache.valueMarker.setIcon(
-      leaflet.divIcon({
-        className: "cell-value-icon",
-        html: `<div>${value}</div>`,
-        iconSize: [20, 20],
-      }),
+      leaflet.divIcon({ className: "cell-value-icon", html: `<div>${value}</div>`, iconSize: [20, 20] }),
     );
   }
 }
@@ -296,6 +318,7 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
 
   updateStatus();
   updateCircleTooltip(cache);
+  saveGameState();
 }
 
 function bindCachePopup(cache: Cache) {
@@ -388,4 +411,6 @@ map.on("moveend", () => {
 /* ------------------------------------------------------
    INITIAL SPAWN
 ------------------------------------------------------ */
+loadGameState();      // <- restore game state
+updateStatus();
 updateVisibleCaches();
