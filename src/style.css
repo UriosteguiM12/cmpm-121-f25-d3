@@ -1,25 +1,17 @@
-#controlPanel {
-  padding: 1rem;
-}
-
+/* Panels */
+#controlPanel,
 #statusPanel {
   padding: 1rem;
 }
 
+/* Map */
 #map {
   width: 100%;
   height: 80vh;
 }
 
-.leaflet-tooltip.cell-label {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  color: white;
-  font-weight: bold;
-  text-align: center;
-}
-
+/* Cell labels and icons */
+.leaflet-tooltip.cell-label,
 .cell-value-icon div {
   background: transparent;
   border: none;
@@ -29,34 +21,54 @@
   text-align: center;
 }
 
+/* Arrow button container (D-pad) */
 #movementControls {
-  position: fixed;
-  bottom: 5px;
-  left: 50%;
+  position: fixed; /* float above the map */
+  bottom: 20px; /* distance from bottom */
+  left: 50%; /* center horizontally */
   transform: translateX(-50%);
 
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left . right"
+    ". down .";
+  grid-gap: 10px;
+  justify-items: center;
   align-items: center;
-  gap: 1px;
 
-  z-index: 9999;
+  width: 150px; /* overall D-pad size */
+  height: 150px;
+  z-index: 1000; /* on top of the map */
 }
 
-#movementControls .middle-row {
-  display: flex;
-  gap: 48px;
+/* Grid positions */
+#btn-up {
+  grid-area: up;
+}
+#btn-down {
+  grid-area: down;
+}
+#btn-left {
+  grid-area: left;
+}
+#btn-right {
+  grid-area: right;
 }
 
+/* Arrow buttons */
 .arrow-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  border: none;
-  background: white;
-  font-size: 22px;
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  border-radius: 10px;
+  border: 1px solid #888;
+  background-color: white;
   box-shadow: 0 0 5px #0004;
   cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .arrow-btn:active {
@@ -64,6 +76,7 @@
   background: #eee;
 }
 
+/* Other buttons */
 #geo-btn,
 #new-game-btn {
   display: block;

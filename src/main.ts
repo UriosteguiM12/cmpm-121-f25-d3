@@ -112,12 +112,10 @@ controlsDiv.id = "movementControls";
 document.body.appendChild(controlsDiv);
 
 controlsDiv.innerHTML = `
-  <button class="arrow-btn" id="btn-up">▲</button>
-  <div class="middle-row">
-    <button class="arrow-btn" id="btn-left">◀</button>
-    <button class="arrow-btn" id="btn-right">▶</button>
-  </div>
-  <button class="arrow-btn" id="btn-down">▼</button>
+<button class="arrow-btn" id="btn-up">▲</button>
+<button class="arrow-btn" id="btn-left">◀</button>
+<button class="arrow-btn" id="btn-right">▶</button>
+<button class="arrow-btn" id="btn-down">▼</button>
 `;
 
 const geoBtn = document.createElement("button");
@@ -251,7 +249,7 @@ geoBtn.addEventListener("click", () => {
   } else {
     disableGeolocationMovement();
     geoBtn.textContent = "Enable Geolocation Movement";
-    controlsDiv.style.display = "block";
+    controlsDiv.style.display = "grid";
   }
   geoEnabled = !geoEnabled;
 });
