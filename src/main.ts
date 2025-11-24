@@ -23,7 +23,7 @@ const PLAYER_RANGE_METERS = 30;
 const COIN_VALUES = [1, 2, 4, 8, 16, 32, 64, 128];
 
 /* ------------------------------------------------------
-   TYPES & HELPERS
+   TYPES
 ------------------------------------------------------ */
 type GridCell = { i: number; j: number };
 type Cache = {
@@ -33,30 +33,37 @@ type Cache = {
   valueMarker?: leaflet.Marker;
 };
 
-// Returns a string key for Map
+/* ------------------------------------------------------
+   HELPERS
+------------------------------------------------------ */
 const keyOf = (i: number, j: number) => `${i},${j}`;
-
-// Converts grid coordinates to LatLng
-function cellToLatLng(cell: GridCell): leaflet.LatLng {
-  return leaflet.latLng(
-    cell.i * TILE_DEGREES + TILE_DEGREES / 2,
-    cell.j * TILE_DEGREES + TILE_DEGREES / 2,
+const cellToLatLng = ({ i, j }: GridCell) =>
+  leaflet.latLng(
+    i * TILE_DEGREES + TILE_DEGREES / 2,
+    j * TILE_DEGREES + TILE_DEGREES / 2,
   );
-}
+const latLngToCell = (latlng: leaflet.LatLng) => ({
+  i: Math.floor(latlng.lat / TILE_DEGREES),
+  j: Math.floor(latlng.lng / TILE_DEGREES),
+});
+const shouldSpawnCache = (i: number, j: number) =>
+  luck([i, j, "initialValue"].toString()) < CACHE_SPAWN_PROBABILITY;
 
-// Converts LatLng to grid coordinates
-function latLngToCell(latlng: leaflet.LatLng): GridCell {
-  return {
-    i: Math.floor(latlng.lat / TILE_DEGREES),
-    j: Math.floor(latlng.lng / TILE_DEGREES),
-  };
-}
-
-// Returns a coin value for a cache based on luck
 function pickCacheValue(i: number, j: number): number {
   const raw = luck([i, j, "initialValue"].toString());
-  const index = Math.floor(raw * 1_000_000) % COIN_VALUES.length;
-  return COIN_VALUES[index];
+  return COIN_VALUES[Math.floor(raw * 1_000_000) % COIN_VALUES.length];
+}
+
+/* ------------------------------------------------------
+   DATA STORES (Flyweight + Memento)
+------------------------------------------------------ */
+const cellValues: Map<string, number> = new Map();
+const modifiedCacheState: Map<string, { pickedUp: boolean }> = new Map();
+
+function getCellValue(i: number, j: number) {
+  const key = keyOf(i, j);
+  if (!cellValues.has(key)) cellValues.set(key, pickCacheValue(i, j));
+  return cellValues.get(key)!;
 }
 
 /* ------------------------------------------------------
@@ -113,7 +120,10 @@ leaflet
    PLAYER SETUP
 ------------------------------------------------------ */
 let playerHeldCoin: number | null = 1;
-statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+function updateStatus() {
+  statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+}
+updateStatus();
 
 const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
@@ -129,40 +139,45 @@ function movePlayerByStep(dI: number, dJ: number) {
 }
 
 // Wire movement buttons
-document.getElementById("btn-up")!.addEventListener(
-  "click",
-  () => movePlayerByStep(1, 0),
-);
-document.getElementById("btn-down")!.addEventListener(
-  "click",
-  () => movePlayerByStep(-1, 0),
-);
-document.getElementById("btn-left")!.addEventListener(
-  "click",
-  () => movePlayerByStep(0, -1),
-);
-document.getElementById("btn-right")!.addEventListener(
-  "click",
-  () => movePlayerByStep(0, 1),
-);
+["up", "down", "left", "right"].forEach((dir) => {
+  const btn = document.getElementById(`btn-${dir}`)!;
+  const moves: Record<string, [number, number]> = {
+    up: [1, 0],
+    down: [-1, 0],
+    left: [0, -1],
+    right: [0, 1],
+  };
+  btn.addEventListener("click", () => movePlayerByStep(...moves[dir]));
+});
 
 /* ------------------------------------------------------
-   DATA STORES (Flyweight + Memento)
+   CACHE LOGIC
 ------------------------------------------------------ */
-const cellValues: Map<string, number> = new Map();
-const modifiedCacheState: Map<string, { pickedUp: boolean }> = new Map();
-
-function getCellValue(i: number, j: number) {
-  const key = keyOf(i, j);
-  if (!cellValues.has(key)) {
-    cellValues.set(key, pickCacheValue(i, j));
-  }
-  return cellValues.get(key)!;
+function setCircleStyle(cache: Cache, inRange: boolean, pickedUp: boolean) {
+  cache.circle.setStyle({
+    fillOpacity: inRange ? 0.5 : 0.2,
+    color: pickedUp ? "gray" : inRange ? "blue" : "gray",
+    fillColor: pickedUp ? "#aaa" : inRange ? "#30f" : "#ccc",
+  });
 }
 
-/* ------------------------------------------------------
-   CACHE POPUP LOGIC
------------------------------------------------------- */
+function updateCircleTooltip(cache: Cache) {
+  const key = keyOf(cache.i, cache.j);
+  const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
+  const value = pickedUp ? 0 : getCellValue(cache.i, cache.j);
+
+  cache.circle.setTooltipContent(`${value}`);
+  if (cache.valueMarker) {
+    cache.valueMarker.setIcon(
+      leaflet.divIcon({
+        className: "cell-value-icon",
+        html: `<div>${value}</div>`,
+        iconSize: [20, 20],
+      }),
+    );
+  }
+}
+
 function renderCachePopup(cache: Cache, pickedUp: boolean) {
   const popupDiv = document.createElement("div");
   const value = pickedUp ? 0 : getCellValue(cache.i, cache.j);
@@ -194,16 +209,12 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
     messageDiv.textContent = "";
-
-    if (playerHeldCoin === 256) {
-      alert("🎉 You win! 🎉");
-    }
+    if (playerHeldCoin === 256) alert("🎉 You win! 🎉");
   } else {
-    // Coin doesn't match
     messageDiv.textContent = "Coin doesn't match value";
   }
 
-  statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
+  updateStatus();
   updateCircleTooltip(cache);
 }
 
@@ -220,25 +231,6 @@ function bindCachePopup(cache: Cache) {
   });
 }
 
-/* ------------------------------------------------------
-   CACHE CREATION & TOOLTIP + VALUE MARKER
------------------------------------------------------- */
-function updateCircleTooltip(cache: Cache) {
-  const key = keyOf(cache.i, cache.j);
-  const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
-  const value = pickedUp ? 0 : getCellValue(cache.i, cache.j);
-  cache.circle.setTooltipContent(`${value}`);
-  if (cache.valueMarker) {
-    cache.valueMarker.setIcon(
-      leaflet.divIcon({
-        className: "cell-value-icon",
-        html: `<div>${value}</div>`,
-        iconSize: [20, 20],
-      }),
-    );
-  }
-}
-
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
   const circle = leaflet.circle(center, {
@@ -247,17 +239,14 @@ function createCache(i: number, j: number): Cache {
     fillColor: "#30f",
     fillOpacity: 0.5,
   }).addTo(map);
-
-  const value = getCellValue(i, j);
   const valueMarker = leaflet.marker(center, {
     icon: leaflet.divIcon({
       className: "cell-value-icon",
-      html: `<div>${value}</div>`,
+      html: `<div>${getCellValue(i, j)}</div>`,
       iconSize: [20, 20],
     }),
     interactive: false,
   }).addTo(map);
-
   const cache: Cache = { i, j, circle, valueMarker };
   bindCachePopup(cache);
   return cache;
@@ -269,55 +258,34 @@ function createCache(i: number, j: number): Cache {
 let visibleCaches: Cache[] = [];
 
 function updateVisibleCaches() {
-  // Remove old caches + value markers
-  for (const cache of visibleCaches) {
-    map.removeLayer(cache.circle);
-    if (cache.valueMarker) map.removeLayer(cache.valueMarker);
-  }
+  // Remove old caches
+  visibleCaches.forEach((c) => {
+    map.removeLayer(c.circle);
+    if (c.valueMarker) map.removeLayer(c.valueMarker);
+  });
   visibleCaches = [];
 
-  const pi = playerCell.i;
-  const pj = playerCell.j;
+  const pi = playerCell.i, pj = playerCell.j;
   const playerPos = playerMarker.getLatLng();
 
   for (let di = -NEIGHBORHOOD_SIZE; di <= NEIGHBORHOOD_SIZE; di++) {
     for (let dj = -NEIGHBORHOOD_SIZE; dj <= NEIGHBORHOOD_SIZE; dj++) {
-      const i = pi + di;
-      const j = pj + dj;
-
-      if (luck([i, j, "initialValue"].toString()) >= CACHE_SPAWN_PROBABILITY) {
-        continue;
-      }
+      const i = pi + di, j = pj + dj;
+      if (!shouldSpawnCache(i, j)) continue;
 
       const cache = createCache(i, j);
       const key = keyOf(i, j);
       const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
 
-      if (pickedUp) cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
-
       const distance = playerPos.distanceTo(cellToLatLng({ i, j }));
       const inRange = distance <= PLAYER_RANGE_METERS;
 
-      cache.circle.setStyle({
-        fillOpacity: inRange ? 0.5 : 0.2,
-        color: inRange ? "blue" : "gray",
-        fillColor: inRange ? "#30f" : "#ccc",
-      });
+      setCircleStyle(cache, inRange, pickedUp);
 
       if (inRange) bindCachePopup(cache);
       else cache.circle.unbindPopup();
 
-      if (cache.valueMarker) {
-        const value = pickedUp ? 0 : getCellValue(i, j);
-        cache.valueMarker.setLatLng(cellToLatLng({ i, j }));
-        cache.valueMarker.setIcon(
-          leaflet.divIcon({
-            className: "cell-value-icon",
-            html: `<div>${value}</div>`,
-            iconSize: [20, 20],
-          }),
-        );
-      }
+      if (cache.valueMarker) updateCircleTooltip(cache);
 
       visibleCaches.push(cache);
     }
@@ -329,12 +297,10 @@ function updateVisibleCaches() {
 ------------------------------------------------------ */
 map.on("moveend", () => {
   const centerCell = latLngToCell(map.getCenter());
-  const prevI = playerCell.i;
-  const prevJ = playerCell.j;
+  const prevI = playerCell.i, prevJ = playerCell.j;
 
   playerCell.i = centerCell.i;
   playerCell.j = centerCell.j;
-
   updateVisibleCaches();
 
   playerCell.i = prevI;
