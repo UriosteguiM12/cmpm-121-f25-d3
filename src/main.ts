@@ -87,7 +87,7 @@ function loadGameState() {
     modifiedCacheState.clear();
     state.modifiedCacheState.forEach(
       ([key, value]: [string, { pickedUp: boolean }]) =>
-        modifiedCacheState.set(key, value)
+        modifiedCacheState.set(key, value),
     );
   } catch (err) {
     console.error("Failed to load game state:", err);
@@ -154,7 +154,8 @@ leaflet
 ------------------------------------------------------ */
 let playerHeldCoin: number | null = 1;
 const playerCell: GridCell = latLngToCell(CLASSROOM_LATLNG);
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!").addTo(map);
+const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip("That's you!")
+  .addTo(map);
 
 function updateStatus() {
   statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
@@ -250,9 +251,10 @@ function enableGeolocationMovement() {
   movementFacade.setMovementStrategy(geoMovement);
 
   navigator.geolocation.watchPosition(
-    (pos) => movementFacade.moveToLatLng(
-      leaflet.latLng(pos.coords.latitude, pos.coords.longitude)
-    ),
+    (pos) =>
+      movementFacade.moveToLatLng(
+        leaflet.latLng(pos.coords.latitude, pos.coords.longitude),
+      ),
     (err) => console.error("Geolocation error:", err),
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
   );
@@ -276,7 +278,11 @@ function updateCircleTooltip(cache: Cache) {
   cache.circle.setTooltipContent(`${value}`);
   if (cache.valueMarker) {
     cache.valueMarker.setIcon(
-      leaflet.divIcon({ className: "cell-value-icon", html: `<div>${value}</div>`, iconSize: [20, 20] }),
+      leaflet.divIcon({
+        className: "cell-value-icon",
+        html: `<div>${value}</div>`,
+        iconSize: [20, 20],
+      }),
     );
   }
 }
@@ -411,6 +417,6 @@ map.on("moveend", () => {
 /* ------------------------------------------------------
    INITIAL SPAWN
 ------------------------------------------------------ */
-loadGameState();      // <- restore game state
+loadGameState(); // <- restore game state
 updateStatus();
 updateVisibleCaches();
