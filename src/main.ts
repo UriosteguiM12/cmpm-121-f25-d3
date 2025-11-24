@@ -439,39 +439,11 @@ function bindCachePopup(cache: Cache) {
   });
 }
 
-function bindCacheTap(cache: Cache) {
-  cache.circle.on("click", () => {
-    const playerPos = playerMarker.getLatLng();
-    const cachePos = cellToLatLng({ i: cache.i, j: cache.j });
-    const distance = playerPos.distanceTo(cachePos);
-
-    if (distance > PLAYER_RANGE_METERS) {
-      alert("You are too far away to open this cache.");
-      return;
-    }
-
-    const key = keyOf(cache.i, cache.j);
-    const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
-
-    // Render popup for this cache
-    const popupDiv = renderCachePopup(cache, pickedUp);
-
-    // Bind pickup button inside the popup
-    popupDiv.querySelector("#pickup")!.addEventListener(
-      "click",
-      () => handleCachePickup(cache, popupDiv),
-    );
-
-    // Open a Leaflet popup at the cache's location
-    cache.circle.bindPopup(popupDiv).openPopup();
-  });
-}
-
 // Create a new cache at a cell
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
   const circle = leaflet.circle(center, {
-    radius: 5,
+    radius: 7,
     color: "blue",
     fillColor: "#30f",
     fillOpacity: 0.5,
@@ -486,7 +458,6 @@ function createCache(i: number, j: number): Cache {
   }).addTo(map);
   const cache: Cache = { i, j, circle, valueMarker };
   bindCachePopup(cache);
-  bindCacheTap(cache);
   return cache;
 }
 
