@@ -121,6 +121,16 @@ controlsDiv.innerHTML = `
   <button class="arrow-btn" id="btn-down">▼</button>
 `;
 
+const geoBtn = document.createElement("button");
+geoBtn.id = "geo-btn";
+geoBtn.textContent = "Enable Geolocation Movement";
+document.body.appendChild(geoBtn);
+
+geoBtn.addEventListener("click", () => {
+  enableGeolocationMovement();
+  alert("Geolocation movement enabled!");
+});
+
 /* ------------------------------------------------------
    MAP INITIALIZATION
 ------------------------------------------------------ */
@@ -173,6 +183,48 @@ function movePlayerByStep(dI: number, dJ: number) {
   playerMarker.setLatLng(newLatLng);
   map.panTo(newLatLng);
   updateVisibleCaches();
+}
+
+/**
+ * Moves the player to a specific real-world LatLng (from geolocation),
+ * updates map and caches.
+ */
+function movePlayerToLatLng(pos: leaflet.LatLng) {
+  const { i, j } = latLngToCell(pos);
+
+  playerCell.i = i;
+  playerCell.j = j;
+
+  playerMarker.setLatLng(pos);
+  map.panTo(pos);
+
+  updateVisibleCaches();
+}
+
+/**
+ * Starts using the browser Geolocation API to move the player.
+ */
+function enableGeolocationMovement() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported by this browser.");
+    return;
+  }
+
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      movePlayerToLatLng(leaflet.latLng(lat, lng));
+    },
+    (err) => {
+      console.error("Geolocation error:", err);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 5000,
+    },
+  );
 }
 
 // Wire movement buttons
