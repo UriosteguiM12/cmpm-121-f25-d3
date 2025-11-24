@@ -439,6 +439,26 @@ function bindCachePopup(cache: Cache) {
   });
 }
 
+function bindCacheTap(cache: Cache) {
+  // When a user taps/clicks the cache circle
+  cache.circle.on("click", () => {
+    const key = keyOf(cache.i, cache.j);
+    const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
+
+    // Render popup for this cache
+    const popupDiv = renderCachePopup(cache, pickedUp);
+
+    // Bind pickup button inside the popup
+    popupDiv.querySelector("#pickup")!.addEventListener(
+      "click",
+      () => handleCachePickup(cache, popupDiv),
+    );
+
+    // Open a Leaflet popup at the cache's location
+    cache.circle.bindPopup(popupDiv).openPopup();
+  });
+}
+
 // Create a new cache at a cell
 function createCache(i: number, j: number): Cache {
   const center = cellToLatLng({ i, j });
@@ -458,6 +478,7 @@ function createCache(i: number, j: number): Cache {
   }).addTo(map);
   const cache: Cache = { i, j, circle, valueMarker };
   bindCachePopup(cache);
+  bindCacheTap(cache);
   return cache;
 }
 
