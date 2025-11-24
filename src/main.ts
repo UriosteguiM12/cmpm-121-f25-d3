@@ -179,6 +179,7 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
   const pickedUp = modifiedCacheState.get(key)?.pickedUp ?? false;
   const currentValue = pickedUp ? 0 : getCellValue(cache.i, cache.j);
 
+  const messageDiv = popupDiv.querySelector<HTMLDivElement>("#message")!;
   const valueSpan = popupDiv.querySelector<HTMLSpanElement>("#value")!;
 
   if (playerHeldCoin === null) {
@@ -186,15 +187,20 @@ function handleCachePickup(cache: Cache, popupDiv: HTMLElement) {
     valueSpan.textContent = "0";
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
+    messageDiv.textContent = "";
   } else if (playerHeldCoin === currentValue) {
     playerHeldCoin *= 2;
     valueSpan.textContent = "0";
     modifiedCacheState.set(key, { pickedUp: true });
     cache.circle.setStyle({ fillColor: "#aaa", color: "gray" });
+    messageDiv.textContent = "";
 
     if (playerHeldCoin === 256) {
       alert("🎉 You win! 🎉");
     }
+  } else {
+    // Coin doesn't match
+    messageDiv.textContent = "Coin doesn't match value";
   }
 
   statusPanelDiv.textContent = `You have: Coin of value ${playerHeldCoin}`;
